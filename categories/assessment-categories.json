@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 3,
+  "categories": [
+    {
+      "id": "frailty",
+      "title": "Frailty",
+      "description": "Assessment of older adults with frailty syndromes, functional decline and medicines-related risk.",
+      "order": 10,
+      "iconKey": "older-person"
+    },
+    {
+      "id": "ent",
+      "title": "HEENT",
+      "description": "Head, Ears Eyes, nose and throat",
+      "order": 20,
+      "iconKey": "general"
+    },
+    {
+      "id": "cardiology",
+      "title": "Cardiology",
+      "description": "Cardiology assessments.",
+      "order": 30,
+      "iconKey": "heart"
+    },
+    {
+      "id": "neurology",
+      "title": "Neuro",
+      "description": "Neuro assessments.",
+      "order": 40,
+      "iconKey": "brain"
+    },
+    {
+      "id": "musculoskeletal",
+      "title": "MSK",
+      "description": "MSK assessments.",
+      "order": 50,
+      "iconKey": "bone"
+    },
+    {
+      "id": "renal",
+      "title": "Renal",
+      "description": "Renal assessments.",
+      "order": 60,
+      "iconKey": "kidney"
+    },
+    {
+      "id": "uncategorised",
+      "title": "Uncategorised",
+      "description": "Assessment guides not yet assigned to a clinical subsection.",
+      "order": 9999,
+      "iconKey": "general"
+    }
+  ]
+}
