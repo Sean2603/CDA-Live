@@ -1,0 +1,545 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Sean2603/clinical-decision-assessments/main/schema/prescribing-schema.json",
+  "title": "Remote condition-based prescribing pathway definition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "version",
+    "status",
+    "category",
+    "summary",
+    "clinicalNotes",
+    "cautions",
+    "regimens",
+    "specialConsiderations",
+    "references",
+    "aliases",
+    "system",
+    "updatedOn",
+    "changeSummary",
+    "effectiveFrom"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "aliases": {
+      "$ref": "#/$defs/stringList"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "enum": [
+        "active",
+        "withdrawn",
+        "superseded"
+      ]
+    },
+    "careSetting": {
+      "description": "Where this pathway is used. Optional for existing content; absent means primary-care.",
+      "enum": [
+        "primary-care",
+        "bhsct",
+        "nhsct",
+        "sehsct",
+        "shsct",
+        "whsct"
+      ]
+    },
+    "conditionId": {
+      "description": "Shared stable ID for the same condition across care settings. Optional; absent means the pathway's own id.",
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$"
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "system": {
+      "type": "string",
+      "minLength": 1
+    },
+    "summary": {
+      "type": "string"
+    },
+    "updatedOn": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "changeSummary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "effectiveFrom": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "clinicalNotes": {
+      "$ref": "#/$defs/stringList"
+    },
+    "cautions": {
+      "$ref": "#/$defs/stringList"
+    },
+    "regimens": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/regimen"
+      }
+    },
+    "specialConsiderations": {
+      "$ref": "#/$defs/sectionList"
+    },
+    "references": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/stringList"
+        },
+        {
+          "uniqueItems": true
+        }
+      ]
+    },
+    "clinicalValidation": {
+      "$ref": "#/$defs/clinicalValidation"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/clinicalAttachment"
+      },
+      "default": []
+    },
+    "prominentResources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/prominentResource"
+      },
+      "default": []
+    }
+  },
+  "$defs": {
+    "stringList": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "medicationComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "medicationId",
+        "displayName",
+        "dose",
+        "route",
+        "frequency",
+        "duration"
+      ],
+      "properties": {
+        "medicationId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9_-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "frequency": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "regimen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "label",
+        "components",
+        "restrictions",
+        "notes"
+      ],
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relationship": {
+          "enum": [
+            "AND",
+            "OR"
+          ],
+          "default": "AND"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/medicationComponent"
+          }
+        },
+        "restrictions": {
+          "$ref": "#/$defs/stringList"
+        },
+        "notes": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "sectionList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "items"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "items": {
+            "$ref": "#/$defs/stringList"
+          }
+        }
+      }
+    },
+    "clinicalValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validated"
+      ],
+      "properties": {
+        "validated": {
+          "type": "boolean"
+        },
+        "reviewedBy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewedOn": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "reviewerRole": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "nextReviewDue": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "reviewNotes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "clinicalAttachmentReplacementGovernance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replacedOn",
+        "replacedBy",
+        "replacementReason",
+        "changeSummary",
+        "clinicalMeaningChanged",
+        "requiresRevalidation",
+        "sourceChecked",
+        "previousPath",
+        "previousVersion",
+        "previousSha256"
+      ],
+      "properties": {
+        "replacedOn": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "replacedBy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replacementReason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changeSummary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clinicalMeaningChanged": {
+          "type": "boolean"
+        },
+        "requiresRevalidation": {
+          "type": "boolean"
+        },
+        "sourceChecked": {
+          "type": "boolean"
+        },
+        "previousPath": {
+          "type": "string",
+          "pattern": "^attachments/"
+        },
+        "previousVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "previousSha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "clinicalAttachment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "title",
+        "label",
+        "path",
+        "caption",
+        "source",
+        "referenceId",
+        "version",
+        "sha256",
+        "mediaType",
+        "originalFileName",
+        "fileSize",
+        "width",
+        "height",
+        "uploadedOn",
+        "uploadedBy",
+        "replacementGovernance"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "image",
+            "pdf",
+            "document",
+            "spreadsheet",
+            "presentation",
+            "text"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^attachments/"
+        },
+        "caption": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "referenceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "originalFileName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fileSize": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "width": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "uploadedOn": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "uploadedBy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replacementGovernance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/clinicalAttachmentReplacementGovernance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "prominentResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "sourceType"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": [
+            "url",
+            "attachment"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "attachmentId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "sourceType": {
+                "const": "url"
+              }
+            },
+            "required": [
+              "sourceType"
+            ]
+          },
+          "then": {
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "sourceType": {
+                "const": "attachment"
+              }
+            },
+            "required": [
+              "sourceType"
+            ]
+          },
+          "then": {
+            "required": [
+              "attachmentId"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

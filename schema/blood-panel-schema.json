@@ -1,0 +1,877 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Sean2603/clinical-decision-assessments/main/schema/blood-panel-schema.json",
+  "title": "Remote blood-panel definition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "subtitle",
+    "version",
+    "minimumAppVersion",
+    "status",
+    "summary",
+    "introduction",
+    "sections",
+    "calculations",
+    "urgentFindings",
+    "overrides",
+    "referenceIds",
+    "commonPatterns",
+    "furtherTesting"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subtitle": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "minimumAppVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "active",
+        "withdrawn"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "introduction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "specimens": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/specimen"
+      },
+      "default": []
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/section"
+      }
+    },
+    "calculations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/calculation"
+      }
+    },
+    "urgentFindings": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "overrides": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "referenceIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "commonPatterns": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/commonPattern"
+      }
+    },
+    "furtherTesting": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/furtherTest"
+      }
+    },
+    "clinicalValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validated"
+      ],
+      "properties": {
+        "validated": {
+          "type": "boolean"
+        },
+        "reviewedBy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reviewedOn": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "reviewerRole": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "nextReviewDue": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "reviewNotes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/clinicalAttachment"
+      },
+      "default": []
+    },
+    "prominentResources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/prominentResource"
+      },
+      "default": []
+    }
+  },
+  "$defs": {
+    "commonPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "findings",
+        "interpretation",
+        "actions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "findings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "interpretation": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "furtherTest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "test",
+        "rationale",
+        "referenceIds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "test": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rationale": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "referenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "unit",
+        "referenceRange",
+        "lowInterpretation",
+        "highInterpretation",
+        "notes"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string"
+        },
+        "referenceRange": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lowInterpretation": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "highInterpretation": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unitless": {
+          "type": "boolean"
+        },
+        "navigation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "showInJumpTo",
+            "label"
+          ],
+          "properties": {
+            "showInJumpTo": {
+              "type": "boolean"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "rows"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/row"
+          }
+        },
+        "navigation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "showInJumpTo",
+            "label"
+          ],
+          "properties": {
+            "showInJumpTo": {
+              "type": "boolean"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "calculation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "formula",
+        "inputLabels",
+        "outputUnit",
+        "interpretation",
+        "engine",
+        "parityCases"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "formula": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputLabels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "outputUnit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interpretation": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "engine": {
+          "$ref": "#/$defs/calculationEngine"
+        },
+        "parityCases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "description",
+              "inputs",
+              "expectedNumber",
+              "expectedText"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputs": {
+                "type": "object"
+              },
+              "expectedNumber": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "expectedText": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "min",
+              "max",
+              "decimalPlaces",
+              "unit",
+              "validationMessage"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "min": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "max": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "decimalPlaces": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 6
+              },
+              "unit": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "validationMessage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "default": []
+        }
+      }
+    },
+    "specimen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specimenTypeId",
+        "quantity",
+        "notes"
+      ],
+      "properties": {
+        "specimenTypeId": {
+          "type": "string",
+          "enum": [
+            "purple",
+            "lilac",
+            "yellow",
+            "gold",
+            "blue",
+            "green",
+            "grey",
+            "pink",
+            "red",
+            "orange",
+            "black",
+            "white",
+            "other"
+          ]
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "clinicalAttachmentReplacementGovernance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replacedOn",
+        "replacedBy",
+        "replacementReason",
+        "changeSummary",
+        "clinicalMeaningChanged",
+        "requiresRevalidation",
+        "sourceChecked",
+        "previousPath",
+        "previousVersion",
+        "previousSha256"
+      ],
+      "properties": {
+        "replacedOn": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "replacedBy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replacementReason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changeSummary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clinicalMeaningChanged": {
+          "type": "boolean"
+        },
+        "requiresRevalidation": {
+          "type": "boolean"
+        },
+        "sourceChecked": {
+          "type": "boolean"
+        },
+        "previousPath": {
+          "type": "string",
+          "pattern": "^attachments/"
+        },
+        "previousVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "previousSha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "clinicalAttachment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "title",
+        "label",
+        "path",
+        "caption",
+        "source",
+        "referenceId",
+        "version",
+        "sha256",
+        "mediaType",
+        "originalFileName",
+        "fileSize",
+        "width",
+        "height",
+        "uploadedOn",
+        "uploadedBy",
+        "replacementGovernance"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "image",
+            "pdf",
+            "document",
+            "spreadsheet",
+            "presentation",
+            "text"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^attachments/"
+        },
+        "caption": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "referenceId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "originalFileName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fileSize": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "width": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "uploadedOn": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "uploadedBy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replacementGovernance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/clinicalAttachmentReplacementGovernance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "prominentResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "sourceType"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": [
+            "url",
+            "attachment"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "attachmentId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "sourceType": {
+                "const": "url"
+              }
+            },
+            "required": [
+              "sourceType"
+            ]
+          },
+          "then": {
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "sourceType": {
+                "const": "attachment"
+              }
+            },
+            "required": [
+              "sourceType"
+            ]
+          },
+          "then": {
+            "required": [
+              "attachmentId"
+            ]
+          }
+        }
+      ]
+    },
+    "calculationEngine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "expression",
+        "precision",
+        "parameters"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "expression",
+            "acid-base-basic",
+            "aki-creatinine-stage"
+          ]
+        },
+        "expression": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "precision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 6
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "textResults": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "expression"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "expression": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

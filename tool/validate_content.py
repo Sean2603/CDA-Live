@@ -1,0 +1,616 @@
+#!/usr/bin/env python3
+import argparse
+import hashlib
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+from jsonschema import Draft202012Validator, FormatChecker
+
+ROOT = Path(__file__).resolve().parent.parent
+SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
+ATTACHMENT_TOKEN_RE = re.compile(r"\{\{attachment:([^}|]+)(?:\|([^}]+))?\}\}")
+IMAGE_TOKEN_RE = re.compile(r"\{\{image:([^}|]+)(?:\|([^}]+))?\}\}")
+NO_DEFINITION_RE = re.compile(r"\{\{no-definition:([^}]+)\}\}")
+STABLE_ID_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9_-]*)")
+
+COLLECTIONS = {
+    "assessment": {"directory":ROOT/"assessments","schema":ROOT/"schema"/"assessment-schema.json","versionField":"version","allowEmpty":True},
+    "guideline": {"directory":ROOT/"guidelines","schema":ROOT/"schema"/"guideline-schema.json","versionField":"contentVersion","allowEmpty":True},
+    "procedure": {"directory":ROOT/"procedures","schema":ROOT/"schema"/"procedure-schema.json","versionField":"version","allowEmpty":True},
+    "scoring-tool": {"directory":ROOT/"scoring_tools","schema":ROOT/"schema"/"scoring-tool-schema.json","versionField":"version","allowEmpty":True},
+    "blood-panel": {"directory":ROOT/"blood_panels","schema":ROOT/"schema"/"blood-panel-schema.json","versionField":"version","allowEmpty":True},
+    "medication": {"directory":ROOT/"medications","schema":ROOT/"schema"/"medication-schema.json","versionField":"version","allowEmpty":True},
+    "prescribing": {"directory":ROOT/"prescribing","schema":ROOT/"schema"/"prescribing-schema.json","versionField":"version","allowEmpty":True},
+    "shared-learning": {"directory":ROOT/"shared_learning","schema":ROOT/"schema"/"shared-learning-schema.json","versionField":"version","allowEmpty":True},
+}
+
+FEATURE_AVAILABILITY_PATH = ROOT / "app_config" / "feature-availability.json"
+FEATURE_AVAILABILITY_SCHEMA_PATH = ROOT / "schema" / "app-feature-availability-schema.json"
+KNOWN_APP_FEATURE_IDS = {
+    "assessments", "bloods", "procedures", "scoring-tools", "guidelines", "medications",
+    "prescribing", "cpd-hub", "notes", "todo",
+}
+APP_FEATURE_STATES = {"enabled", "hidden"}
+
+def validate_app_feature_availability(errors: list[str]) -> dict | None:
+    document = load_json(FEATURE_AVAILABILITY_PATH, errors)
+    schema = load_json(FEATURE_AVAILABILITY_SCHEMA_PATH, errors)
+    if document is None or schema is None:
+        return None
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    for error in sorted(validator.iter_errors(document), key=lambda item: list(item.absolute_path)):
+        location = ".".join(str(part) for part in error.absolute_path) or "document"
+        errors.append(f"{FEATURE_AVAILABILITY_PATH}:{location}: {error.message}")
+    features = document.get("features")
+    if not isinstance(features, list):
+        return document
+    seen: set[str] = set()
+    for index, feature in enumerate(features):
+        if not isinstance(feature, dict):
+            continue
+        feature_id = feature.get("id")
+        state = feature.get("state")
+        if isinstance(feature_id, str):
+            if feature_id in seen:
+                errors.append(f"{FEATURE_AVAILABILITY_PATH}:features[{index}]: duplicate feature id {feature_id}.")
+            seen.add(feature_id)
+            if feature_id not in KNOWN_APP_FEATURE_IDS:
+                errors.append(f"{FEATURE_AVAILABILITY_PATH}:features[{index}]: unknown feature id {feature_id}.")
+        if isinstance(state, str) and state not in APP_FEATURE_STATES:
+            errors.append(f"{FEATURE_AVAILABILITY_PATH}:features[{index}]: invalid state {state}.")
+    missing = sorted(KNOWN_APP_FEATURE_IDS - seen)
+    legacy_feature_set = KNOWN_APP_FEATURE_IDS - {"procedures"}
+    legacy_missing_procedures = missing == ["procedures"] and seen == legacy_feature_set
+    if missing and not legacy_missing_procedures:
+        errors.append(f"{FEATURE_AVAILABILITY_PATH}: missing required feature ids: {', '.join(missing)}.")
+    extra = sorted(seen - KNOWN_APP_FEATURE_IDS)
+    if extra:
+        errors.append(f"{FEATURE_AVAILABILITY_PATH}: unknown feature ids: {', '.join(extra)}.")
+    return document
+
+IMAGE_KIND_FOLDERS = {
+    "assessment":"assessments","guideline":"guidelines","procedure":"procedures","scoring-tool":"scoring_tools",
+    "blood-panel":"blood_panels","medication":"medications","prescribing":"prescribing","shared-learning":"shared_learning",
+    "clinical-notice":"clinical_notices",
+}
+
+def load_json(path: Path, errors: list[str]) -> dict | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        errors.append(f"Missing required file: {path}")
+    except json.JSONDecodeError as exc:
+        errors.append(f"Invalid JSON in {path}: line {exc.lineno}, column {exc.colno}: {exc.msg}")
+    return None
+
+def version_parts(value: str) -> tuple[int,int,int]:
+    if not SEMVER.fullmatch(value):
+        raise ValueError(f"Invalid semantic version: {value!r}")
+    return tuple(int(part) for part in value.split("."))
+
+def git_output(*args: str) -> str:
+    return subprocess.run(["git",*args],check=True,capture_output=True,text=True).stdout
+
+def changed_files(base_ref: str) -> set[str]:
+    merge_base = git_output("merge-base",base_ref,"HEAD").strip()
+    output = git_output("diff","--name-only","--diff-filter=ACMRTD",f"{merge_base}...HEAD")
+    return {line.strip().replace("\\","/") for line in output.splitlines() if line.strip()}
+
+def load_json_from_git(ref: str, relative_path: str) -> dict | None:
+    try:
+        return json.loads(git_output("show",f"{ref}:{relative_path}"))
+    except subprocess.CalledProcessError:
+        return None
+
+def assessment_reference_ids(value: dict) -> set[str]:
+    ids = set(value.get("references",[]))
+    for section in value.get("sections",[]):
+        for item in section.get("items",[]):
+            ids.update(item.get("references",[]))
+            imaging = item.get("imagingGuidance")
+            if isinstance(imaging,dict):
+                ids.update(imaging.get("references",[]))
+    return ids
+
+def document_reference_ids(kind: str, value: dict) -> set[str]:
+    if kind == "assessment":
+        return assessment_reference_ids(value)
+    if kind in {"guideline","medication","prescribing","shared-learning"}:
+        return set(value.get("references",[]))
+    return set(value.get("referenceIds",[]))
+
+def _binary_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024*1024),b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+def _validate_attachments(kind: str, value: dict, source_path: Path,
+                          known_reference_ids: set[str], errors: list[str]) -> None:
+    attachments = value.get("attachments",[])
+    if not isinstance(attachments,list):
+        return
+    expected_folder = IMAGE_KIND_FOLDERS.get(kind)
+    seen_ids = set()
+    allowed_extensions = {".png",".jpg",".jpeg",".webp",".pdf",".docx",".xlsx",".csv",".pptx",".txt",".md"}
+    for index, attachment in enumerate(attachments):
+        prefix = f"{source_path}:attachments[{index}]"
+        if not isinstance(attachment,dict):
+            continue
+        attachment_id = attachment.get("id")
+        if isinstance(attachment_id,str):
+            if attachment_id in seen_ids:
+                errors.append(f"{prefix}: duplicate attachment id {attachment_id}.")
+            seen_ids.add(attachment_id)
+        rel = attachment.get("path")
+        if not isinstance(rel,str):
+            continue
+        normalized = rel.replace("\\","/")
+        if normalized.startswith("/") or ".." in Path(normalized).parts:
+            errors.append(f"{prefix}: attachment path must stay inside the repository attachments directory.")
+            continue
+        parts = normalized.split("/")
+        if len(parts) < 3 or parts[0] != "attachments":
+            errors.append(f"{prefix}: attachment path must start with attachments/.")
+            continue
+        if expected_folder and parts[1] != expected_folder:
+            errors.append(f"{prefix}: attachment path must use attachments/{expected_folder}/ for {kind} content.")
+        attachment_path = ROOT / normalized
+        if attachment_path.suffix.lower() not in allowed_extensions:
+            errors.append(f"{prefix}: unsupported attachment extension {attachment_path.suffix}.")
+        if not attachment_path.exists():
+            errors.append(f"{prefix}: referenced attachment does not exist: {normalized}.")
+        elif not attachment_path.is_file():
+            errors.append(f"{prefix}: referenced attachment is not a file: {normalized}.")
+        else:
+            expected_hash = attachment.get("sha256")
+            if isinstance(expected_hash,str) and _binary_sha256(attachment_path) != expected_hash.lower():
+                errors.append(f"{prefix}: sha256 does not match {normalized}.")
+        if attachment.get("label") == "__inline_only__" and attachment.get("type") != "image":
+            errors.append(f"{prefix}: inline-only media must use attachment type 'image'.")
+        reference_id = attachment.get("referenceId")
+        if isinstance(reference_id,str) and reference_id and reference_id not in known_reference_ids:
+            errors.append(f"{prefix}: unknown referenceId {reference_id}.")
+        governance = attachment.get("replacementGovernance")
+        if isinstance(governance,dict):
+            previous_path = governance.get("previousPath")
+            if previous_path == rel:
+                errors.append(f"{prefix}: replacement must use a new versioned attachment path.")
+            if isinstance(previous_path,str):
+                previous_file = ROOT / previous_path
+                if not previous_file.exists():
+                    errors.append(f"{prefix}: previous attachment must remain in the repository: {previous_path}.")
+                elif isinstance(governance.get("previousSha256"),str) and _binary_sha256(previous_file) != governance["previousSha256"].lower():
+                    errors.append(f"{prefix}: previousSha256 does not match {previous_path}.")
+            if governance.get("clinicalMeaningChanged") is True and governance.get("requiresRevalidation") is not True:
+                errors.append(f"{prefix}: clinicalMeaningChanged=true requires requiresRevalidation=true.")
+            if governance.get("sourceChecked") is not True:
+                errors.append(f"{prefix}: replacement source/reference must be confirmed.")
+            validation = value.get("clinicalValidation")
+            if governance.get("clinicalMeaningChanged") is True and isinstance(validation,dict) and validation.get("validated") is True:
+                errors.append(f"{prefix}: clinically meaningful attachment replacement requires parent content to return to unvalidated status.")
+
+def _walk_strings(item, item_path="content"):
+    if isinstance(item,str):
+        yield item_path,item
+    elif isinstance(item,list):
+        for index, child in enumerate(item):
+            yield from _walk_strings(child,f"{item_path}[{index}]")
+    elif isinstance(item,dict):
+        for key, child in item.items():
+            if key not in {"attachments","images"}:
+                yield from _walk_strings(child,f"{item_path}.{key}")
+
+def _validate_inline_tokens(value: dict, source_path: Path, attachments_by_id: dict[str,dict],
+                            stable_ids: set[str], glossary_terms: set[str], errors: list[str],
+                            allow_image_tokens: bool = False) -> None:
+    inline_image_ids: set[str] = set()
+    for _, text in _walk_strings(value):
+        for match in IMAGE_TOKEN_RE.finditer(text):
+            inline_image_ids.add(match.group(1).strip())
+    for attachment_id, attachment in attachments_by_id.items():
+        if attachment.get("label") == "__inline_only__":
+            if not allow_image_tokens:
+                errors.append(f"{source_path}:attachments: inline-only media is currently supported only in assessment content.")
+            elif attachment_id not in inline_image_ids:
+                errors.append(f"{source_path}:attachments: inline-only image '{attachment_id}' must be referenced by an image token in the same assessment.")
+    for item_path,text in _walk_strings(value):
+        for match in ATTACHMENT_TOKEN_RE.finditer(text):
+            attachment_id = match.group(1).strip()
+            if attachment_id not in attachments_by_id:
+                errors.append(f"{source_path}:{item_path}: attachment token '{attachment_id}' does not resolve to an attachment on this content item.")
+        for match in IMAGE_TOKEN_RE.finditer(text):
+            attachment_id = match.group(1).strip()
+            if not allow_image_tokens:
+                errors.append(f"{source_path}:{item_path}: image token '{attachment_id}' is currently supported only in assessment content.")
+                continue
+            attachment = attachments_by_id.get(attachment_id)
+            if attachment is None:
+                errors.append(f"{source_path}:{item_path}: image token '{attachment_id}' does not resolve to an attachment on this content item.")
+            elif attachment.get("type") != "image":
+                errors.append(f"{source_path}:{item_path}: image token '{attachment_id}' must reference an attachment with type 'image'.")
+        for match in NO_DEFINITION_RE.finditer(text):
+            token = match.group(1).strip().casefold()
+            if token not in glossary_terms:
+                errors.append(f"{source_path}:{item_path}: no-definition token '{match.group(1).strip()}' does not resolve to the governed glossary.")
+        for match in STABLE_ID_RE.finditer(text):
+            stable_id = match.group(1)
+            if stable_id not in stable_ids:
+                errors.append(f"{source_path}:{item_path}: stable link '@{stable_id}' does not resolve to governed app content.")
+
+def _attachments_by_id(value: dict) -> dict[str,dict]:
+    return {
+        item.get("id"): item for item in value.get("attachments",[])
+        if isinstance(item,dict) and isinstance(item.get("id"),str)
+    }
+
+def _validate_prominent_resources(value: dict, source_path: Path, errors: list[str]) -> None:
+    attachment_ids = _attachments_by_id(value).keys()
+    for index, resource in enumerate(value.get("prominentResources",[])):
+        if not isinstance(resource,dict):
+            continue
+        if resource.get("sourceType") == "attachment":
+            attachment_id = resource.get("attachmentId")
+            if attachment_id not in attachment_ids:
+                errors.append(f"{source_path}:prominentResources[{index}]: attachmentId {attachment_id!r} does not resolve to an attachment on this content item.")
+        elif resource.get("sourceType") == "url":
+            # The app rejects the whole pack for a non-web URL resource.
+            url = resource.get("url")
+            if not isinstance(url,str) or not re.match(r"^https?://[^/\s]+",url):
+                errors.append(f"{source_path}:prominentResources[{index}]: url {url!r} must be an absolute http(s) URL.")
+
+def _validate_procedure_step_images(value: dict, source_path: Path, errors: list[str]) -> None:
+    image_ids = {
+        item.get("id") for item in value.get("attachments",[])
+        if isinstance(item,dict) and item.get("type") == "image"
+    }
+    for index, step in enumerate(value.get("steps",[])):
+        if not isinstance(step,dict):
+            continue
+        image_id = step.get("imageAttachmentId")
+        if image_id is not None and image_id not in image_ids:
+            errors.append(f"{source_path}:steps[{index}]: imageAttachmentId {image_id!r} does not resolve to an image attachment on this procedure.")
+
+def _validate_scoring_active_when(value: dict, source_path: Path, errors: list[str]) -> None:
+    # Mirrors the app's and the parity engine's handling of conditional criteria:
+    # a criterion whose activeWhen does not resolve would be silently dropped
+    # from scoring, so the pack must not ship it.
+    criteria = [item for item in value.get("criteria",[]) if isinstance(item,dict)]
+    choices_by_criterion = {
+        item.get("id"): {
+            choice.get("id") for choice in item.get("choices",[])
+            if isinstance(choice,dict)
+        }
+        for item in criteria
+    }
+    controllers = {
+        item["activeWhen"]["criterionId"] for item in criteria
+        if isinstance(item.get("activeWhen"),dict)
+        and isinstance(item["activeWhen"].get("criterionId"),str)
+    }
+    for item in criteria:
+        active_when = item.get("activeWhen")
+        if not isinstance(active_when,dict):
+            continue
+        label = f"{source_path}:criteria[{item.get('id')!r}].activeWhen"
+        controller_id = active_when.get("criterionId")
+        choice_id = active_when.get("equalsChoiceId")
+        if controller_id == item.get("id"):
+            errors.append(f"{label}: a criterion cannot depend on itself.")
+            continue
+        if controller_id not in choices_by_criterion:
+            errors.append(f"{label}: criterionId {controller_id!r} does not resolve to a criterion on this tool.")
+            continue
+        if choice_id not in choices_by_criterion[controller_id]:
+            errors.append(f"{label}: equalsChoiceId {choice_id!r} is not a choice of criterion {controller_id!r}.")
+        # A controller that is itself conditional would need resolving in order,
+        # which neither engine does.
+        if item.get("id") in controllers:
+            errors.append(f"{label}: criterion {item.get('id')!r} is itself a controller, so it must not be conditional.")
+
+def _validate_scoring_escalations(value: dict, source_path: Path, errors: list[str]) -> None:
+    # Mirrors ClinicalContentValidator.validateScoringTool in the app, which
+    # rejects the whole pack for an escalation it could not apply safely.
+    escalations = value.get("escalations",[])
+    if not isinstance(escalations,list) or not escalations:
+        return
+    evaluation = value.get("evaluation")
+    kind = evaluation.get("kind") if isinstance(evaluation,dict) else None
+    if kind not in {"sum","required-sum"}:
+        errors.append(f"{source_path}:escalations: evaluation kind {kind!r} does not support escalations (only 'sum' and 'required-sum').")
+    known_result_ids = {
+        result.get("id") for result in value.get("results",[])
+        if isinstance(result,dict)
+    }
+    for mode in value.get("alternateModes",[]):
+        if isinstance(mode,dict):
+            known_result_ids.update(
+                result.get("id") for result in mode.get("results",[])
+                if isinstance(result,dict)
+            )
+    for index, escalation in enumerate(escalations):
+        if not isinstance(escalation,dict):
+            continue
+        referenced = [escalation.get("toResultId"),*escalation.get("fromResultIds",[])]
+        unknown = sorted({str(item) for item in referenced if item not in known_result_ids})
+        if unknown:
+            errors.append(f"{source_path}:escalations[{index}]: result IDs {', '.join(unknown)} do not resolve to a result on this scoring tool.")
+
+CARE_SETTING_FOLDERS = {"primary-care", "bhsct", "nhsct", "sehsct", "shsct", "whsct"}
+CARE_SETTING_DEFAULT = "primary-care"
+CONDITION_ID_PATTERN = re.compile(r"^[a-z0-9_-]+$")
+
+
+def prescribing_folder_errors(path: Path, value: dict, directory: Path, errors: list[str]) -> None:
+    """Prescribing pathways live in prescribing/<care-setting>/ and must match their careSetting."""
+    relative = path.relative_to(directory).parts
+    label = path.relative_to(ROOT).as_posix()
+    if len(relative) != 2:
+        errors.append(f"{label}: prescribing pathways must sit in a care-setting folder (prescribing/<setting>/).")
+        return
+    folder = relative[0]
+    if folder not in CARE_SETTING_FOLDERS:
+        errors.append(f"{label}: unknown care-setting folder {folder!r}.")
+    setting = value.get("careSetting", CARE_SETTING_DEFAULT)
+    if setting != folder:
+        errors.append(f"{label}: careSetting {setting!r} does not match folder {folder!r}.")
+    condition_id = value.get("conditionId")
+    if condition_id is not None and (not isinstance(condition_id, str) or not CONDITION_ID_PATTERN.match(condition_id)):
+        errors.append(f"{label}: conditionId must be a lowercase stable ID.")
+
+
+def validate_collection(kind: str, settings: dict, known_reference_ids: set[str],
+                        known_category_ids: set[str], errors: list[str]) -> dict[str,dict]:
+    schema = load_json(settings["schema"],errors)
+    if schema is None:
+        return {}
+    validator = Draft202012Validator(schema,format_checker=FormatChecker())
+    directory = settings["directory"]
+    recursive = directory.name == "prescribing"
+    globber = directory.rglob("*.json") if recursive else directory.glob("*.json")
+    paths = sorted(globber, key=lambda item: item.as_posix().casefold())
+    if not paths:
+        if settings.get("allowEmpty",False):
+            return {}
+        errors.append(f"No JSON files found in {settings['directory'].relative_to(ROOT)}.")
+        return {}
+    documents = {}
+    for path in paths:
+        value = load_json(path,errors)
+        if value is None:
+            continue
+        if recursive and isinstance(value, dict):
+            prescribing_folder_errors(path, value, directory, errors)
+        item_id = value.get("id")
+        if not isinstance(item_id,str) or not item_id:
+            errors.append(f"{path}: missing valid id.")
+            continue
+        if item_id in documents:
+            errors.append(f"Duplicate {kind} id: {item_id}.")
+        documents[item_id] = value
+        for validation_error in sorted(validator.iter_errors(value),key=lambda item:[str(part) for part in item.absolute_path]):
+            location = ".".join(str(part) for part in validation_error.absolute_path)
+            suffix = f":{location}" if location else ""
+            errors.append(f"{path}{suffix}: {validation_error.message}")
+        if kind == "assessment":
+            category_ids = value.get("categoryIds",["uncategorised"])
+            unknown = sorted(set(category_ids)-known_category_ids)
+            if unknown:
+                errors.append(f"{path}: unknown category IDs: {', '.join(unknown)}.")
+        _validate_attachments(kind,value,path,known_reference_ids,errors)
+        _validate_prominent_resources(value,path,errors)
+        if kind == "procedure":
+            _validate_procedure_step_images(value,path,errors)
+        if kind == "scoring-tool":
+            _validate_scoring_escalations(value,path,errors)
+            _validate_scoring_active_when(value,path,errors)
+        missing = sorted(document_reference_ids(kind,value)-known_reference_ids)
+        if missing:
+            errors.append(f"{path}: unknown reference IDs: {', '.join(missing)}.")
+    return documents
+
+def validate_assessment_categories(errors: list[str]) -> set[str]:
+    document = load_json(ROOT/"categories"/"assessment-categories.json",errors)
+    schema = load_json(ROOT/"schema"/"assessment-categories-schema.json",errors)
+    if document is None or schema is None:
+        return set()
+    validator = Draft202012Validator(schema,format_checker=FormatChecker())
+    for error in validator.iter_errors(document):
+        errors.append(f"assessment categories: {error.message}")
+    ids = [item.get("id") for item in document.get("categories",[]) if isinstance(item,dict)]
+    if len(ids) != len(set(ids)):
+        errors.append("Duplicate assessment category IDs exist.")
+    if "uncategorised" not in ids:
+        errors.append("Assessment categories must include uncategorised.")
+    return {item for item in ids if isinstance(item,str)}
+
+def validate_glossary(known_reference_ids: set[str], errors: list[str]):
+    path = ROOT/"glossary"/"glossary.json"
+    schema_path = ROOT/"schema"/"glossary-schema.json"
+    document = load_json(path,errors)
+    schema = load_json(schema_path,errors)
+    if document is None or schema is None:
+        return None,set()
+    validator = Draft202012Validator(schema,format_checker=FormatChecker())
+    for error in sorted(validator.iter_errors(document),key=lambda item:[str(part) for part in item.absolute_path]):
+        location = ".".join(str(part) for part in error.absolute_path)
+        suffix = f":{location}" if location else ""
+        errors.append(f"{path}{suffix}: {error.message}")
+    ids = []
+    terms = set()
+    for entry in document.get("entries",[]):
+        if not isinstance(entry,dict):
+            continue
+        entry_id = entry.get("id")
+        if isinstance(entry_id,str):
+            ids.append(entry_id)
+            terms.add(entry_id.casefold())
+        term = entry.get("term")
+        if isinstance(term,str):
+            terms.add(term.strip().casefold())
+        for alias in entry.get("aliases",[]):
+            if isinstance(alias,str) and alias.strip():
+                terms.add(alias.strip().casefold())
+        missing_refs = sorted(set(entry.get("referenceIds",[]))-known_reference_ids)
+        if missing_refs:
+            errors.append(f"{path}: glossary entry {entry_id!r} has unknown reference IDs: {', '.join(missing_refs)}.")
+    if len(ids) != len(set(ids)):
+        errors.append(f"{path}: duplicate glossary entry IDs exist.")
+    return document,terms
+
+def validate_cross_links(documents_by_kind: dict[str,dict[str,dict]], errors: list[str]) -> None:
+    medications = documents_by_kind["medication"]
+    prescribing = documents_by_kind["prescribing"]
+    for pathway_id,pathway in prescribing.items():
+        for regimen in pathway.get("regimens",[]):
+            for component in regimen.get("components",[]):
+                medication_id = component.get("medicationId")
+                if medication_id and medication_id not in medications:
+                    errors.append(f"prescribing/{pathway_id}: component medicationId {medication_id!r} does not resolve to medications/{medication_id}.json")
+    for medication_id,medication in medications.items():
+        for indication in medication.get("indications",[]):
+            for regimen in indication.get("regimens",[]):
+                pathway_id = regimen.get("prescribingPathwayId")
+                choice_label = regimen.get("prescribingChoiceLabel")
+                if not pathway_id or not choice_label:
+                    errors.append(f"medications/{medication_id}: each indication regimen requires prescribingPathwayId and prescribingChoiceLabel.")
+                    continue
+                pathway = prescribing.get(pathway_id)
+                if pathway is None:
+                    errors.append(f"medications/{medication_id}: prescribingPathwayId {pathway_id!r} does not resolve.")
+                    continue
+                if pathway.get("status") == "withdrawn":
+                    # The app rejects the whole pack for a link to a withdrawn pathway.
+                    errors.append(f"medications/{medication_id}: prescribingPathwayId {pathway_id!r} is withdrawn.")
+                    continue
+                matches = [choice for choice in pathway.get("regimens",[]) if choice.get("label") == choice_label]
+                if not matches:
+                    errors.append(f"medications/{medication_id}: prescribingChoiceLabel {choice_label!r} does not exist in {pathway_id}.")
+                    continue
+                if not any(any(component.get("medicationId") == medication_id for component in choice.get("components",[])) for choice in matches):
+                    errors.append(f"medications/{medication_id}: {pathway_id} choice {choice_label!r} does not link back to this medication.")
+
+LINE_ENDING_EXCLUDED_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".claude", ".agents", ".windsurf"}
+
+def validate_line_endings(errors: list[str]) -> None:
+    # The app hashes raw downloaded bytes, while sync_manifest.py hashes
+    # LF-normalised text, so a CR byte would make every manifest hash mismatch.
+    for path in sorted(ROOT.rglob("*.json")):
+        relative = path.relative_to(ROOT)
+        if any(part in LINE_ENDING_EXCLUDED_DIRS for part in relative.parts[:-1]) or not path.is_file():
+            continue
+        if b"\r" in path.read_bytes():
+            errors.append(f"{relative.as_posix()}: contains a carriage return (CR) byte; JSON files must use LF line endings only.")
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base-ref",help="Base Git ref used to enforce content version increases.")
+    args = parser.parse_args()
+    errors = []
+    validate_line_endings(errors)
+    known_category_ids = validate_assessment_categories(errors)
+    references_document = load_json(ROOT/"references"/"references.json",errors)
+    if references_document is None:
+        for error in errors:
+            print(f"ERROR: {error}")
+        return 1
+    feature_availability = validate_app_feature_availability(errors)
+    reference_ids = [item.get("id") for item in references_document.get("references",[]) if isinstance(item,dict)]
+    if any(not isinstance(item,str) or not item for item in reference_ids):
+        errors.append("Every reference must have a non-empty string id.")
+    if len(reference_ids) != len(set(reference_ids)):
+        errors.append("Duplicate reference IDs exist.")
+    known_reference_ids = {item for item in reference_ids if isinstance(item,str) and item}
+
+    glossary,glossary_terms = validate_glossary(known_reference_ids,errors)
+
+    documents_by_kind = {}
+    for kind,settings in COLLECTIONS.items():
+        documents_by_kind[kind] = validate_collection(kind,settings,known_reference_ids,known_category_ids,errors)
+
+    stable_ids = set()
+    for documents in documents_by_kind.values():
+        stable_ids.update(documents.keys())
+
+    for kind,documents in documents_by_kind.items():
+        for item_id,value in documents.items():
+            source_path = COLLECTIONS[kind]["directory"]/f"{item_id}.json"
+            attachments_by_id = _attachments_by_id(value)
+            _validate_inline_tokens(value,source_path,attachments_by_id,stable_ids,glossary_terms,errors,allow_image_tokens=(kind == "assessment"))
+
+    validate_cross_links(documents_by_kind,errors)
+
+    notices_path = ROOT/"clinical_notices"/"clinical-notices.json"
+    notices_schema_path = ROOT/"schema"/"clinical-notices-schema.json"
+    if notices_path.exists() and notices_schema_path.exists():
+        notices_document = load_json(notices_path,errors)
+        notices_schema = load_json(notices_schema_path,errors)
+        if notices_document is not None and notices_schema is not None:
+            validator = Draft202012Validator(notices_schema,format_checker=FormatChecker())
+            for error in sorted(validator.iter_errors(notices_document),key=lambda item:[str(part) for part in item.absolute_path]):
+                location = ".".join(str(part) for part in error.absolute_path)
+                suffix = f":{location}" if location else ""
+                errors.append(f"{notices_path}{suffix}: {error.message}")
+            for notice in notices_document.get("notices",[]):
+                if isinstance(notice,dict):
+                    _validate_attachments("clinical-notice",notice,notices_path,known_reference_ids,errors)
+                    attachments_by_id = _attachments_by_id(notice)
+                    _validate_inline_tokens(notice,notices_path,attachments_by_id,stable_ids,glossary_terms,errors)
+
+    if args.base_ref:
+        changed = changed_files(args.base_ref)
+        folder_to_kind = {
+            "assessments":"assessment","guidelines":"guideline","procedures":"procedure","scoring_tools":"scoring-tool",
+            "blood_panels":"blood-panel","medications":"medication","prescribing":"prescribing",
+            "shared_learning":"shared-learning",
+        }
+        for relative_path in sorted(changed):
+            folder = relative_path.split("/",1)[0]
+            kind = folder_to_kind.get(folder)
+            if kind is not None and relative_path.endswith(".json"):
+                current_path = ROOT/relative_path
+                if current_path.exists():
+                    current = load_json(current_path,errors)
+                    previous = load_json_from_git(args.base_ref,relative_path)
+                    if current is not None and previous is not None:
+                        field = COLLECTIONS[kind]["versionField"]
+                        try:
+                            if version_parts(current[field]) <= version_parts(previous[field]):
+                                errors.append(f"{relative_path} changed, but {field} was not increased ({previous[field]} -> {current[field]}).")
+                        except (KeyError,ValueError) as exc:
+                            errors.append(f"{relative_path}: {exc}")
+            if relative_path == "glossary/glossary.json":
+                current = load_json(ROOT/relative_path,errors)
+                previous = load_json_from_git(args.base_ref,relative_path)
+                if current is not None and previous is not None:
+                    try:
+                        if version_parts(current["version"]) <= version_parts(previous["version"]):
+                            errors.append(f"{relative_path} changed, but version was not increased ({previous['version']} -> {current['version']}).")
+                    except (KeyError,ValueError) as exc:
+                        errors.append(f"{relative_path}: {exc}")
+
+    if errors:
+        print("\nClinical content validation failed:")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+
+    print(
+        "Clinical content validation passed: "
+        f"{len(documents_by_kind['assessment'])} assessments, "
+        f"{len(documents_by_kind['guideline'])} guidelines, "
+        f"{len(documents_by_kind['procedure'])} procedures, "
+        f"{len(documents_by_kind['scoring-tool'])} scoring tools, "
+        f"{len(documents_by_kind['blood-panel'])} blood panels, "
+        f"{len(documents_by_kind['medication'])} medications, "
+        f"{len(documents_by_kind['prescribing'])} prescribing pathways, "
+        f"{len(glossary.get('entries',[])) if isinstance(glossary,dict) else 0} glossary entries."
+    )
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
