@@ -1,0 +1,98 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this repository is
+
+CDA-Live is the **published clinical-content repository** for the Clinical Decision Support platform. CDA stands for Clinical Decision Assessments; the repo is named CDA-Live. It holds governed JSON content, the JSON Schemas that define it, the validation tools, and the generated `manifest.json` that the Flutter app downloads. It contains no application code.
+
+Two sibling repos depend on it:
+- **CDM Content Manager** (`../cdm-content-manager`) authors, reviews, validates and publishes content here. It writes exact governed files to the `content-review/clinical-review` branch and CDA's `main` is the live baseline. CDM's own validators mirror this repo's schemas.
+- **Clinical Decision App** (`../clinical-decision-app`) is the Flutter client. It downloads the manifest, verifies SHA-256 hashes, and renders the content. Its parsers and validators must accept what this repo's schemas allow.
+
+The platform-level rules for how the three repos interact are in the `Clinical Decision` folder's `CLAUDE.md` (`C:\Users\McG\Desktop\Clinical Decision\CLAUDE.md`).
+
+## Working agreements
+
+- **Routine content goes through CDM.** Do not hand-author or hand-edit clinical content here. Direct edits are only for tooling, schema changes, recovery, or exceptional cases, and must be recorded in `CHANGELOG.md`.
+- **Clinical facts come from clinicians.** Never fill in `clinicalValidation` (`reviewedBy`, `reviewedOn`, `reviewerRole`, `nextReviewDue`), validation status, or review identity in code or by hand.
+- **Published versions are immutable.** A `version` that has been published is never reused, and versions only increase. An `id` never changes once published.
+- **Content is never committed from chat.** Clinical content reaches CDA only through CDM's governed publication process (review batch on `content-review/clinical-review`, clinical validation, then merge). Do not write or commit content files here from a conversation, even when asked to.
+- **Tooling and schema changes** may be committed here when the user asks for them. Run the validation commands below first, update `CHANGELOG.md` and `README.md`, and list the actions `cdm-content-manager` and `clinical-decision-app` need as a numbered list in the final message. Do not edit those repos unless asked.
+- **Keep going on reasonable choices.** Pick the most likely reading, record the decision in the final message, and continue. Ask only before hard-to-reverse actions (commits to `main`, pushes, deletes, changes to live content) or when a fact only the user holds is needed.
+
+## Commands
+
+```bash
+python tool/validate_content.py            # every item against its schema, attachments, cross-references
+python tool/validate_references.py         # every cited reference exists and is current
+python tool/validate_manifest_safety.py    # update policy and emergency revocation controls
+python tool/sync_manifest.py --check       # manifest matches content on disk
+python tool/sync_manifest.py --write       # regenerate manifest.json (only after content or schema changes)
+python tool/generate_reference_usage.py    # regenerate derived reference-usage data
+python tool/review_content.py              # review helper (see its --help)
+python tool/validate_remote_engines.py     # remote-engine parity cases
+```
+
+Run `validate_content.py`, `validate_references.py`, `validate_manifest_safety.py` and `sync_manifest.py --check` before every commit. The app-side contract test (in `clinical-decision-app`) runs against a real CDA checkout, so run it too when schemas or the manifest change.
+
+## Architecture
+
+**Folders and schemas**
+
+| Folder | Schema |
+| --- | --- |
+| `assessments/` | `schema/assessment-schema.json` |
+| `blood_panels/` | `schema/blood-panel-schema.json` |
+| `guidelines/` | `schema/guideline-schema.json` |
+| `medications/` | `schema/medication-schema.json` |
+| `prescribing/<care-setting>/` | `schema/prescribing-schema.json` |
+| `procedures/` | `schema/procedure-schema.json` |
+| `scoring_tools/` | `schema/scoring-tool-schema.json` |
+| `shared_learning/` | `schema/shared-learning-schema.json` |
+| `clinical_notices/` | `schema/clinical-notices-schema.json` |
+| `references/`, `glossary/`, `categories/`, `app_config/` | `schema/reference-schema.json`, `glossary-schema.json`, `assessment-categories-schema.json`, `app-feature-availability-schema.json` |
+
+- Prescribing care settings are folders: `primary-care`, `bhsct`, `nhsct`, `sehsct`, `shsct`, `whsct`. A file's `careSetting` must match its folder. The same condition across settings shares a `conditionId`.
+- Assessment category assignments: CDM writes `categories/assessment-categories.json` with an `assignments` map (schemaVersion 3). Older documents without `assignments` fall back to each assessment's `categoryIds`. Keep both working.
+
+**Manifest (`manifest.json`)**
+
+- Generated by `tool/sync_manifest.py`. Never hand-edit it.
+- Lists every item with path, schema path, SHA-256, size and version. It also records `schemaVersion` (currently 4), `minimumAppVersion`, and the Feature Availability, references, glossary and category files.
+- The app will refuse content it cannot parse, so `schemaVersion` and any field shape changes are breaking unless the app is updated first.
+
+**Branches**
+
+- `main` is the live, authoritative baseline. CDM reads it to reconcile.
+- `content-review/clinical-review` is the reusable branch CDM stages clinical review batches on. Do not reset or force-push it.
+
+**Feature Availability (`app_config/feature-availability.json`)**
+
+- Changed operationally through CDM's single "Save changes" action. It bypasses the clinical review flow and commits straight to the base branch. Do not add a separate review step for it, and do not change its shape without updating the app's availability service.
+
+## Contract rules (apply when changing anything)
+
+- **Schema changes are cross-repo.** When any `schema/*.json` changes, update the matching checks in `cdm-content-manager` (`src/lib/content-validation.ts`, `src/lib/semantic-validation.ts`), in `clinical-decision-app` (`lib/services/clinical_content_validator.dart` and the relevant models), and in `tool/validate_content.py`. Publication-only rules must not block drafts.
+- **Enum, pattern and format changes** must match the same value in all three validators. A value the app cannot render must not be published.
+- **Cross-references must resolve.** Every reference, glossary term, category, notice target and medication dependency must exist in its file before publication. Run `validate_references.py`.
+- **Removing or renaming a field** is breaking. Add the replacement first, keep both working until the app and CDM have shipped, then remove the old field in a changelog-recorded release.
+- **Notices and emergency revocations** are published here independently of a content release. Changes to `clinical_notices/` and the revocation fields in the manifest must be re-checked with `validate_manifest_safety.py`.
+
+## Versioning and documentation
+
+- **Formal reset:** CDA has been reset. All content starts again at **0.0.1**. Each item's `version` starts at 0.0.1 for its first publication. The manifest's `contentVersion` is the content baseline and also starts at 0.0.1.
+- **Repository version** (`CHANGELOG.md`) is separate from content versions. Bump it for any schema, tool, structure or content-publication change, and keep it consistent with `CHANGELOG.md`.
+- **CHANGELOG.md**: add the entry at the top with a version and date (YYYY-MM-DD), bulleted changes, and a closing line `Bumped CDA from \`X.Y.Z\` to \`A.B.C\`.`
+- **Cross-repo coordination**: when a change affects the app or CDM, add a dated changelog entry in each affected repo, and reference the coordination in each entry.
+- **README.md** describes folders, validation and the publication flow. Keep it accurate when any of those change.
+
+## Known stale text
+
+- The 0.1.0 references in `README.md` and `CHANGELOG.md` have been corrected to the 0.0.1 reset (2026-11-12).
+- CDM's README refers to CDA tooling "0.0.39+" from the archived `clinical-decision-assessments` repository. Those numbers do not apply here.
+
+## Gotchas
+
+- `clinical-decision-assessments` is archived and read-only. Do not restore content from it without re-validating against the current schemas.
+- Do not commit generated outputs that are not part of the contract, and do not edit `manifest.json` by hand.

@@ -1,10 +1,10 @@
 # CDA-Live
 
-Governed clinical content for the **Clinical Decision Support** app, restarted at version 0.1.0.
+Clinical Decision Assessments (CDA) is the governed clinical content for the **Clinical Decision Support** app. The repository is CDA-Live. CDA was formally reset, and all content starts again at version 0.0.1.
 
 This repository replaces the archived `clinical-decision-assessments` repository. Content is added one item at a time, each going through review and clinical validation before it can be published.
 
-> **Routine content should be authored, reviewed, validated and published through CDM Content Manager**, not edited here directly. Direct edits are for tooling, schema changes, recovery, or exceptional cases, and must be recorded in the changelog.
+> **Content is authored, reviewed, validated and published through CDM Content Manager (the backend), never committed here from chat or edited by hand.** Direct commits are for tooling and schema changes only, when requested, and must be recorded in the changelog.
 
 ## Status
 
@@ -89,9 +89,9 @@ python tool/sync_manifest.py --check
 
 ## Related repositories
 
-- **CDM Content Manager** (`cdm-content-manager`): the authoring and governance app that publishes content here.
-- **Clinical Decision App**: the Flutter app that downloads and displays this content.
-- **clinical-decision-assessments** (archived): the previous content repository. Kept read-only for history.
+- **CDM Content Manager** (`cdm-content-manager`): the backend where items are authored and governed. It publishes content here.
+- **Clinical Decision App** (`clinical-decision-app`): the Flutter app for iOS and Android that downloads and displays this content.
+- **clinical-decision-assessments** (archived): the previous content repository. Kept read-only for history; its version numbers do not apply here.
 
 ## Changelog
 
