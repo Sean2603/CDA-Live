@@ -71,12 +71,6 @@ def validate_app_feature_availability(errors: list[str]) -> dict | None:
         errors.append(f"{FEATURE_AVAILABILITY_PATH}: unknown feature ids: {', '.join(extra)}.")
     return document
 
-IMAGE_KIND_FOLDERS = {
-    "assessment":"assessments","guideline":"guidelines","procedure":"procedures","scoring-tool":"scoring_tools",
-    "blood-panel":"blood_panels","medication":"medications","prescribing":"prescribing","shared-learning":"shared_learning",
-    "clinical-notice":"clinical_notices",
-}
-
 def load_json(path: Path, errors: list[str]) -> dict | None:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -134,7 +128,6 @@ def _validate_attachments(kind: str, value: dict, source_path: Path,
     attachments = value.get("attachments",[])
     if not isinstance(attachments,list):
         return
-    expected_folder = IMAGE_KIND_FOLDERS.get(kind)
     seen_ids = set()
     allowed_extensions = {".png",".jpg",".jpeg",".webp",".pdf",".docx",".xlsx",".csv",".pptx",".txt",".md"}
     for index, attachment in enumerate(attachments):
@@ -157,8 +150,9 @@ def _validate_attachments(kind: str, value: dict, source_path: Path,
         if len(parts) < 3 or parts[0] != "attachments":
             errors.append(f"{prefix}: attachment path must start with attachments/.")
             continue
-        if expected_folder and parts[1] != expected_folder:
-            errors.append(f"{prefix}: attachment path must use attachments/{expected_folder}/ for {kind} content.")
+        # CDM stores attachments under a category folder (attachments/<category>/...) or the content-kind folder.
+        if not re.fullmatch(r"[a-z0-9_-]+", parts[1]):
+            errors.append(f"{prefix}: attachment folder must be a lowercase category or content-kind folder name (letters, digits, - or _), got {parts[1]!r}.")
         attachment_path = ROOT / normalized
         if attachment_path.suffix.lower() not in allowed_extensions:
             errors.append(f"{prefix}: unsupported attachment extension {attachment_path.suffix}.")

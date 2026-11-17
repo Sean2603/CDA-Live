@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-17 — Attachment folder rule relaxed
+
+- `tool/validate_content.py` no longer requires `attachments/<content-kind>/` (for example `attachments/blood_panels/`). Attachments may sit in any lowercase category or content-kind folder under `attachments/`, matching how CDM stores them (`attachments/<category>/...`). Schemas are unchanged (they already require only the `attachments/` prefix). Path-escape, extension, existence and SHA-256 checks are unchanged.
+- Companion CDM entry: attachment paths built from category folders are now accepted by full-repository validation.
+
 ## 2026-11-12 — Formal content reset
 
 **Clinical Decision Assessments (CDA) reset to 0.0.1.**
