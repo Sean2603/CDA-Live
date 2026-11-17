@@ -1,0 +1,26 @@
+{
+  "id": "glossary",
+  "title": "Shared glossary",
+  "version": "0.1.0",
+  "entries": [
+    {
+      "id": "sepsis",
+      "term": "sepsis",
+      "aliases": [],
+      "plainDefinition": "Sirs",
+      "clinicalDefinition": "Sirs",
+      "examples": [],
+      "relatedTerms": [],
+      "referenceIds": []
+    }
+  ],
+  "clinicalValidation": {
+    "validated": true,
+    "reviewedBy": "Sean McGrory",
+    "reviewedOn": "2026-11-17",
+    "reviewerRole": "tAPUC",
+    "nextReviewDue": "2027-11-17",
+    "reviewNotes": "Review completed. No additional review comments recorded."
+  },
+  "status": "active"
+}

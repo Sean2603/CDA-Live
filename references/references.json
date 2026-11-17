@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "lastChecked": "2026-11-17",
+  "references": [
+    {
+      "id": "NICE-NG185",
+      "organisation": "National Institute of Health and Care Excellence",
+      "shortOrganisation": "NICE",
+      "title": "Acute coronary syndromes",
+      "referenceNumber": "NG185",
+      "type": "guideline",
+      "url": "https://www.nice.org.uk/guidance/ng185",
+      "published": "2020-11-18",
+      "lastUpdated": null,
+      "accessed": "2026-11-17",
+      "lastReviewed": "2026-11-17",
+      "reviewStatus": "current",
+      "reviewedBy": "Sean McGrory",
+      "reviewerRole": "tAPUC",
+      "nextReviewDue": "2027-11-17",
+      "supersededBy": null,
+      "notes": null,
+      "relevantTopics": [
+        "troponin"
+      ]
+    },
+    {
+      "id": "NICE-NG158",
+      "organisation": "National Institute of Health and Care Excellence",
+      "shortOrganisation": "NICE",
+      "title": "Venous thromboembolic diseases: diagnosis, management and thrombophilia testing",
+      "referenceNumber": "NG158",
+      "type": "guideline",
+      "url": "https://www.nice.org.uk/guidance/ng158",
+      "published": "2020-03-26",
+      "lastUpdated": null,
+      "accessed": "2026-11-17",
+      "lastReviewed": "2026-11-17",
+      "reviewStatus": "current",
+      "reviewedBy": "Sean McGrory",
+      "reviewerRole": "tAPUC",
+      "nextReviewDue": "2027-11-17",
+      "supersededBy": null,
+      "notes": null,
+      "relevantTopics": [
+        "troponin"
+      ]
+    }
+  ]
+}

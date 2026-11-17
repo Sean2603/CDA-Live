@@ -1,78 +1,37 @@
 {
   "schemaVersion": 4,
-  "contentVersion": "0.0.1",
-  "updatedAt": "2026-11-09T17:56:17Z",
+  "contentVersion": "0.0.2",
+  "updatedAt": "2026-11-17T20:36:19Z",
   "appFeatureAvailability": {
-    "version": "1.0.3",
+    "version": "1.0.0",
     "file": "app_config/feature-availability.json",
     "schema": "schema/app-feature-availability-schema.json",
-    "sha256": "c06447423a9ded744ce0c1d47465afab6940e95c2ec3ca17e418499941108ed6",
+    "sha256": "77a0ed011811312eb4a1cfa519e3222beb9c415d66ccd4b256fb0b0de4b9bff1",
     "schemaSha256": "89851584be4fe55af2f3dc75319f51a4ebcaa11613b3b4ccb6f906ac287086a6",
     "sizeBytes": 780,
     "schemaSizeBytes": 1417
   },
+  "emergencyRevocations": [],
   "minimumAppVersion": "0.63.6",
-  "downloadSizeBytes": 50419,
+  "downloadSizeBytes": 4279,
   "references": {
     "file": "references/references.json",
-    "sha256": "32ed6ce4af5fe1abe6c06cd149fb4ea03b6edeeacfc322dce83b1e08d068ec34",
-    "sizeBytes": 45967
+    "sha256": "b35d7c35e0dff127eb662c8949476965bfec7455f53aa6fb62844fb26cc7ed2e",
+    "sizeBytes": 1481
   },
   "glossary": {
     "file": "glossary/glossary.json",
-    "sha256": "b022192c6bff3fda86b3d2bc8f7da8786fc2fe0c68b83b2d76a3ecc571396923",
-    "sizeBytes": 2255
+    "sha256": "95f5a6b9f81d27a2b4d210941e36649427466132fc5288ee6734d15380182b36",
+    "sizeBytes": 601
   },
   "assessmentCategories": {
     "file": "categories/assessment-categories.json",
     "schema": "schema/assessment-categories-schema.json",
-    "sha256": "a9238075eca7e6cae0131be5d4ec09378aacc99ab626f0e519c365e6847f9f1e",
+    "sha256": "de71e66f7e16b5a0683a8c7b4cd40fedc1d26c1270253d6c2183940924cd1f69",
     "schemaSha256": "76c4f8c41cfc403b4dc8e0c811dc8c9e1a4f558341925abb8451575c4c68705c",
-    "sizeBytes": 1253,
+    "sizeBytes": 275,
     "schemaSizeBytes": 6232,
     "items": [
-      {
-        "id": "frailty",
-        "title": "Frailty",
-        "description": "Assessment of older adults with frailty syndromes, functional decline and medicines-related risk.",
-        "order": 10,
-        "iconKey": "older-person"
-      },
-      {
-        "id": "ent",
-        "title": "HEENT",
-        "description": "Head, Ears Eyes, nose and throat",
-        "order": 20,
-        "iconKey": "general"
-      },
-      {
-        "id": "cardiology",
-        "title": "Cardiology",
-        "description": "Cardiology assessments.",
-        "order": 30,
-        "iconKey": "heart"
-      },
-      {
-        "id": "neurology",
-        "title": "Neuro",
-        "description": "Neuro assessments.",
-        "order": 40,
-        "iconKey": "brain"
-      },
-      {
-        "id": "musculoskeletal",
-        "title": "MSK",
-        "description": "MSK assessments.",
-        "order": 50,
-        "iconKey": "bone"
-      },
-      {
-        "id": "renal",
-        "title": "Renal",
-        "description": "Renal assessments.",
-        "order": 60,
-        "iconKey": "kidney"
-      },
       {
         "id": "uncategorised",
         "title": "Uncategorised",
