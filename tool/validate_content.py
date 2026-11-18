@@ -13,7 +13,6 @@ ROOT = Path(__file__).resolve().parent.parent
 SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 ATTACHMENT_TOKEN_RE = re.compile(r"\{\{attachment:([^}|]+)(?:\|([^}]+))?\}\}")
 IMAGE_TOKEN_RE = re.compile(r"\{\{image:([^}|]+)(?:\|([^}]+))?\}\}")
-NO_DEFINITION_RE = re.compile(r"\{\{no-definition:([^}]+)\}\}")
 STABLE_ID_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9_-]*)")
 
 COLLECTIONS = {
@@ -200,7 +199,7 @@ def _walk_strings(item, item_path="content"):
                 yield from _walk_strings(child,f"{item_path}.{key}")
 
 def _validate_inline_tokens(value: dict, source_path: Path, attachments_by_id: dict[str,dict],
-                            stable_ids: set[str], glossary_terms: set[str], errors: list[str],
+                            stable_ids: set[str], errors: list[str],
                             allow_image_tokens: bool = False) -> None:
     inline_image_ids: set[str] = set()
     for _, text in _walk_strings(value):
@@ -227,10 +226,6 @@ def _validate_inline_tokens(value: dict, source_path: Path, attachments_by_id: d
                 errors.append(f"{source_path}:{item_path}: image token '{attachment_id}' does not resolve to an attachment on this content item.")
             elif attachment.get("type") != "image":
                 errors.append(f"{source_path}:{item_path}: image token '{attachment_id}' must reference an attachment with type 'image'.")
-        for match in NO_DEFINITION_RE.finditer(text):
-            token = match.group(1).strip().casefold()
-            if token not in glossary_terms:
-                errors.append(f"{source_path}:{item_path}: no-definition token '{match.group(1).strip()}' does not resolve to the governed glossary.")
         for match in STABLE_ID_RE.finditer(text):
             stable_id = match.group(1)
             if stable_id not in stable_ids:
@@ -422,40 +417,6 @@ def validate_assessment_categories(errors: list[str]) -> set[str]:
         errors.append("Assessment categories must include uncategorised.")
     return {item for item in ids if isinstance(item,str)}
 
-def validate_glossary(known_reference_ids: set[str], errors: list[str]):
-    path = ROOT/"glossary"/"glossary.json"
-    schema_path = ROOT/"schema"/"glossary-schema.json"
-    document = load_json(path,errors)
-    schema = load_json(schema_path,errors)
-    if document is None or schema is None:
-        return None,set()
-    validator = Draft202012Validator(schema,format_checker=FormatChecker())
-    for error in sorted(validator.iter_errors(document),key=lambda item:[str(part) for part in item.absolute_path]):
-        location = ".".join(str(part) for part in error.absolute_path)
-        suffix = f":{location}" if location else ""
-        errors.append(f"{path}{suffix}: {error.message}")
-    ids = []
-    terms = set()
-    for entry in document.get("entries",[]):
-        if not isinstance(entry,dict):
-            continue
-        entry_id = entry.get("id")
-        if isinstance(entry_id,str):
-            ids.append(entry_id)
-            terms.add(entry_id.casefold())
-        term = entry.get("term")
-        if isinstance(term,str):
-            terms.add(term.strip().casefold())
-        for alias in entry.get("aliases",[]):
-            if isinstance(alias,str) and alias.strip():
-                terms.add(alias.strip().casefold())
-        missing_refs = sorted(set(entry.get("referenceIds",[]))-known_reference_ids)
-        if missing_refs:
-            errors.append(f"{path}: glossary entry {entry_id!r} has unknown reference IDs: {', '.join(missing_refs)}.")
-    if len(ids) != len(set(ids)):
-        errors.append(f"{path}: duplicate glossary entry IDs exist.")
-    return document,terms
-
 def validate_cross_links(documents_by_kind: dict[str,dict[str,dict]], errors: list[str]) -> None:
     medications = documents_by_kind["medication"]
     prescribing = documents_by_kind["prescribing"]
@@ -493,11 +454,14 @@ LINE_ENDING_EXCLUDED_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache
 def validate_line_endings(errors: list[str]) -> None:
     # The app hashes raw downloaded bytes, while sync_manifest.py hashes
     # LF-normalised text, so a CR byte would make every manifest hash mismatch.
-    for path in sorted(ROOT.rglob("*.json")):
-        relative = path.relative_to(ROOT)
-        if any(part in LINE_ENDING_EXCLUDED_DIRS for part in relative.parts[:-1]) or not path.is_file():
+    # Read the committed (index) bytes, not the working tree, so a local autocrlf checkout cannot fail the check.
+    listing = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z", "--", "*.json"], capture_output=True, check=True).stdout
+    for raw in filter(None, listing.split(b"\0")):
+        relative = Path(raw.decode("utf-8"))
+        if any(part in LINE_ENDING_EXCLUDED_DIRS for part in relative.parts[:-1]):
             continue
-        if b"\r" in path.read_bytes():
+        blob = subprocess.run(["git", "-C", str(ROOT), "show", f":{relative.as_posix()}"], capture_output=True, check=True).stdout
+        if b"\r" in blob:
             errors.append(f"{relative.as_posix()}: contains a carriage return (CR) byte; JSON files must use LF line endings only.")
 
 def main() -> int:
@@ -520,8 +484,6 @@ def main() -> int:
         errors.append("Duplicate reference IDs exist.")
     known_reference_ids = {item for item in reference_ids if isinstance(item,str) and item}
 
-    glossary,glossary_terms = validate_glossary(known_reference_ids,errors)
-
     documents_by_kind = {}
     for kind,settings in COLLECTIONS.items():
         documents_by_kind[kind] = validate_collection(kind,settings,known_reference_ids,known_category_ids,errors)
@@ -534,7 +496,7 @@ def main() -> int:
         for item_id,value in documents.items():
             source_path = COLLECTIONS[kind]["directory"]/f"{item_id}.json"
             attachments_by_id = _attachments_by_id(value)
-            _validate_inline_tokens(value,source_path,attachments_by_id,stable_ids,glossary_terms,errors,allow_image_tokens=(kind == "assessment"))
+            _validate_inline_tokens(value,source_path,attachments_by_id,stable_ids,errors,allow_image_tokens=(kind == "assessment"))
 
     validate_cross_links(documents_by_kind,errors)
 
@@ -553,7 +515,7 @@ def main() -> int:
                 if isinstance(notice,dict):
                     _validate_attachments("clinical-notice",notice,notices_path,known_reference_ids,errors)
                     attachments_by_id = _attachments_by_id(notice)
-                    _validate_inline_tokens(notice,notices_path,attachments_by_id,stable_ids,glossary_terms,errors)
+                    _validate_inline_tokens(notice,notices_path,attachments_by_id,stable_ids,errors)
 
     if args.base_ref:
         changed = changed_files(args.base_ref)
@@ -577,15 +539,6 @@ def main() -> int:
                                 errors.append(f"{relative_path} changed, but {field} was not increased ({previous[field]} -> {current[field]}).")
                         except (KeyError,ValueError) as exc:
                             errors.append(f"{relative_path}: {exc}")
-            if relative_path == "glossary/glossary.json":
-                current = load_json(ROOT/relative_path,errors)
-                previous = load_json_from_git(args.base_ref,relative_path)
-                if current is not None and previous is not None:
-                    try:
-                        if version_parts(current["version"]) <= version_parts(previous["version"]):
-                            errors.append(f"{relative_path} changed, but version was not increased ({previous['version']} -> {current['version']}).")
-                    except (KeyError,ValueError) as exc:
-                        errors.append(f"{relative_path}: {exc}")
 
     if errors:
         print("\nClinical content validation failed:")
@@ -601,8 +554,7 @@ def main() -> int:
         f"{len(documents_by_kind['scoring-tool'])} scoring tools, "
         f"{len(documents_by_kind['blood-panel'])} blood panels, "
         f"{len(documents_by_kind['medication'])} medications, "
-        f"{len(documents_by_kind['prescribing'])} prescribing pathways, "
-        f"{len(glossary.get('entries',[])) if isinstance(glossary,dict) else 0} glossary entries."
+        f"{len(documents_by_kind['prescribing'])} prescribing pathways."
     )
     return 0
 

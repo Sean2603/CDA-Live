@@ -46,15 +46,6 @@ for folder, content_type in (("medications","medication"),("prescribing","prescr
         for reference_id in document.get("references", []):
             add_usage(reference_id,content_type,document["id"],document["title"])
 
-glossary_path = ROOT / "glossary" / "glossary.json"
-if glossary_path.exists():
-    glossary = load(glossary_path)
-    for entry in glossary.get("entries", []):
-        if not isinstance(entry, dict):
-            continue
-        for reference_id in entry.get("referenceIds", []):
-            add_usage(reference_id,"glossary",entry.get("id",""),entry.get("term",""))
-
 output = {
     "generated": True,
     "references": [{"referenceId":reference_id,"usedBy":items} for reference_id,items in sorted(usage.items())],

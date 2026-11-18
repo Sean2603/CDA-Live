@@ -10,7 +10,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = ROOT / "manifest.json"
 REFERENCES_PATH = ROOT / "references" / "references.json"
-GLOSSARY_PATH = ROOT / "glossary" / "glossary.json"
 CATEGORIES_PATH = ROOT / "categories" / "assessment-categories.json"
 CLINICAL_NOTICES_PATH = ROOT / "clinical_notices" / "clinical-notices.json"
 CATEGORIES_SCHEMA_PATH = ROOT / "schema" / "assessment-categories-schema.json"
@@ -356,7 +355,6 @@ def clinical_notices() -> list[dict]:
 def payload_paths(generated_collections: dict[str, list[dict]]) -> set[Path]:
     paths = {
         REFERENCES_PATH,
-        GLOSSARY_PATH,
         FEATURE_AVAILABILITY_PATH,
         FEATURE_AVAILABILITY_SCHEMA_PATH,
     }
@@ -370,7 +368,6 @@ def payload_paths(generated_collections: dict[str, list[dict]]) -> set[Path]:
 
 def build_manifest(current: dict) -> tuple[dict, bool]:
     load_json(REFERENCES_PATH)
-    load_json(GLOSSARY_PATH)
     categories = load_json(CATEGORIES_PATH)
     assessment_assignments = governed_assessment_assignments(categories)
     load_json(CATEGORIES_SCHEMA_PATH)
@@ -466,11 +463,6 @@ def build_manifest(current: dict) -> tuple[dict, bool]:
             "file": "references/references.json",
             "sha256": sha256(REFERENCES_PATH),
             "sizeBytes": text_size_bytes(REFERENCES_PATH),
-        },
-        "glossary": {
-            "file": "glossary/glossary.json",
-            "sha256": sha256(GLOSSARY_PATH),
-            "sizeBytes": text_size_bytes(GLOSSARY_PATH),
         },
         "assessmentCategories": {
             "file": "categories/assessment-categories.json",
