@@ -1,0 +1,244 @@
+{
+  "id": "lipid-profile",
+  "title": "Lipid profile",
+  "subtitle": "Total cholesterol, LDL, HDL, triglycerides for cardiovascular risk assessment",
+  "version": "1.0.2",
+  "minimumAppVersion": "0.63.6",
+  "status": "active",
+  "summary": "Lipid panel measurement for cardiovascular risk assessment and monitoring of statin therapy.",
+  "introduction": "Interpret total cholesterol, LDL, HDL, non-HDL and triglycerides with established CVD, inherited disease and overall risk. Routine risk assessment may use non-fasting profiles; selected high-triglyceride investigations require fasting. Follow the reporting laboratory’s service instructions: Belfast biochemistry manual rev18 specifies 14-hour fasting for its triglyceride entry, which needs reconciliation with the clinical indication/local workflow.",
+  "sections": [
+    {
+      "id": "lipid-panel",
+      "title": "Lipid profile",
+      "rows": [
+        {
+          "id": "total-cholesterol",
+          "name": "Total cholesterol",
+          "unit": "mmol/L",
+          "referenceRange": "Interpret with non-HDL, LDL, indication and overall CVD risk; a descriptive cholesterol band is not a prescribing threshold.",
+          "lowInterpretation": [
+            "The lipid contribution is favourable; overall risk and treatment need depend on established disease, age, blood pressure, diabetes, CKD, smoking, inherited disease and current treatment."
+          ],
+          "highInterpretation": [
+            "Assess the full profile, family history, overall risk and secondary causes; use the indication-specific prevention/FH pathway rather than total cholesterol alone."
+          ],
+          "notes": [
+            "Non-HDL cholesterol = total cholesterol − HDL cholesterol.",
+            "Total cholesterol ≈ LDL + HDL + triglycerides/2.2 is the rearranged Friedewald estimate in mmol/L, not a universal measured identity. Follow the laboratory’s calculation/reporting limits."
+          ],
+          "unitless": false,
+          "navigation": {
+            "showInJumpTo": true,
+            "label": "Total cholesterol"
+          }
+        },
+        {
+          "id": "ldl-cholesterol",
+          "name": "LDL cholesterol",
+          "unit": "mmol/L",
+          "referenceRange": "Targets depend on indication. NICE secondary prevention: LDL ≤2.0 mmol/L or non-HDL ≤2.6 mmol/L. Primary prevention assesses treatment response, including >40% non-HDL reduction under NICE NG238.",
+          "lowInterpretation": [
+            "The lipid contribution is favourable; overall risk and treatment need depend on established disease, age, blood pressure, diabetes, CKD, smoking, inherited disease and current treatment."
+          ],
+          "highInterpretation": [
+            "Raised LDL needs assessment through the appropriate prevention or FH pathway. Choose treatment and additional agents by indication, response, tolerance and eligibility; LDL >4.1 mmol/L alone is not a universal escalation rule."
+          ],
+          "notes": [
+            "Use the locally adopted LDL reporting limits and treatment pathway.",
+            "Calculated LDL may be unavailable/unreliable with raised triglycerides; use non-HDL or suitable laboratory-directed direct assessment when the calculation is invalid. Do not mix alternative formula limits."
+          ],
+          "unitless": false,
+          "navigation": {
+            "showInJumpTo": true,
+            "label": "LDL cholesterol"
+          }
+        },
+        {
+          "id": "hdl-cholesterol",
+          "name": "HDL cholesterol",
+          "unit": "mmol/L",
+          "referenceRange": "Interpret HDL with the full lipid profile and overall risk; it is not an independent treatment target.",
+          "lowInterpretation": [
+            "Lower HDL can accompany increased risk, but treatment decisions require the complete clinical risk assessment. Encourage healthy activity, weight management and smoking cessation as appropriate."
+          ],
+          "highInterpretation": [
+            "HDL is one risk marker, not a treatment target or guarantee of protection. Very high HDL may not be protective; assess other risk factors. Do not recommend alcohol to raise HDL."
+          ],
+          "notes": [
+            "HDL is one risk marker, not a treatment target or guarantee of protection. Very high HDL may not be protective; assess other risk factors. Do not recommend alcohol to raise HDL."
+          ],
+          "unitless": false,
+          "navigation": {
+            "showInJumpTo": true,
+            "label": "HDL cholesterol"
+          }
+        },
+        {
+          "id": "triglycerides",
+          "name": "Triglycerides",
+          "unit": "mmol/L",
+          "referenceRange": "Use reporting-laboratory interval and staged clinical review: 4.5–9.9, 10–20 and >20 mmol/L have different assessment actions.",
+          "lowInterpretation": [
+            "The lipid contribution is favourable; overall risk and treatment need depend on established disease, age, blood pressure, diabetes, CKD, smoking, inherited disease and current treatment."
+          ],
+          "highInterpretation": [
+            "For triglycerides 4.5–9.9 mmol/L, optimise CVD risk and secondary causes; risk tools may underestimate risk. For 10–20 mmol/L, repeat fasting after at least 5 days and within 2 weeks, assess secondary causes and seek specialist advice if >10 persists. For >20 mmol/L not explained by excess alcohol or poor glycaemic control, arrange urgent specialist review through the adopted pathway. Pancreatitis symptoms require acute hospital assessment regardless of the band.",
+            "Review diabetes/glycaemic control, alcohol, obesity, medicines, thyroid/renal disease and other secondary causes. Fibrate choice and very-low-fat diets require clinical/dietetic/specialist assessment; avoid routine omega-3 or automatic fibrate treatment from a single band."
+          ],
+          "notes": [
+            "A physiological post-meal rise is not an assay false positive. Confirm when fasting is requested and follow the local collection instruction.",
+            "Use local LDL calculation/reporting limits and non-HDL or suitable direct lipid assessment if invalid. Suspected pseudohyponatraemia requires sodium by direct ion-selective electrode (often a blood-gas analyser), not direct LDL/apoB.",
+            "Marked triglyceride elevation can be secondary or inherited; a concentration alone is not an automatic genetic-testing indication."
+          ],
+          "unitless": false,
+          "navigation": {
+            "showInJumpTo": true,
+            "label": "Triglycerides"
+          }
+        }
+      ],
+      "navigation": {
+        "showInJumpTo": true,
+        "label": null
+      }
+    }
+  ],
+  "calculations": [],
+  "urgentFindings": [
+    "Pancreatitis symptoms with raised triglycerides require acute hospital assessment; For triglycerides 4.5–9.9 mmol/L, optimise CVD risk and secondary causes; risk tools may underestimate risk. For 10–20 mmol/L, repeat fasting after at least 5 days and within 2 weeks, assess secondary causes and seek specialist advice if >10 persists. For >20 mmol/L not explained by excess alcohol or poor glycaemic control, arrange urgent specialist review through the adopted pathway. Pancreatitis symptoms require acute hospital assessment regardless of the band.",
+    "Established CVD requires its secondary-prevention pathway; optimise treatment based on indication, response, tolerance and eligibility, rather than LDL >4.1 alone.",
+    "Acute illness may alter results; arrange a suitable follow-up, but do not delay indicated secondary prevention, particularly after acute coronary syndrome."
+  ],
+  "overrides": [
+    "Use QRISK3 for eligible UK primary-prevention assessment. Established CVD, FH and other high-risk disease-specific groups follow their own pathways; a risk calculator is not a prerequisite for all statins.",
+    "Acute illness may alter results; arrange a suitable follow-up, but do not delay indicated secondary prevention, particularly after acute coronary syndrome.",
+    "Follow the reporting laboratory’s LDL calculation limits and fasting workflow; use non-HDL or suitable direct lipid assessment when invalid. Suspected sodium artefact needs a direct-ion-selective-electrode sodium result and laboratory advice."
+  ],
+  "commonPatterns": [
+    {
+      "id": "optimal-profile",
+      "title": "Favourable lipid contribution within overall risk assessment",
+      "findings": [
+        "LDL <2.6 mmol/L",
+        "HDL >1.3 mmol/L (female) or >1.0 mmol/L (male)",
+        "Triglycerides <1.7 mmol/L",
+        "Total cholesterol <5.2 mmol/L"
+      ],
+      "interpretation": [
+        "The lipid contribution is favourable; overall risk and treatment need depend on established disease, age, blood pressure, diabetes, CKD, smoking, inherited disease and current treatment.",
+        "Current treatment may explain favourable levels and may remain indicated."
+      ],
+      "actions": [
+        "Counsel on diet, exercise, weight management and smoking cessation as appropriate.",
+        "Plan risk-appropriate follow-up; do not mandate annual universal lipid screening for all favourable profiles."
+      ]
+    },
+    {
+      "id": "elevated-cholesterol",
+      "title": "Raised atherogenic cholesterol: assess indication and causes",
+      "findings": [
+        "Raised LDL and/or non-HDL relative to the appropriate indication/response target",
+        "Assess other risk factors, personal/family CVD and secondary causes"
+      ],
+      "interpretation": [
+        "Lipid treatment requires an indication-specific assessment; the profile alone is not a universal drug rule.",
+        "Use QRISK3 for eligible UK primary-prevention assessment. Established CVD, FH and other high-risk disease-specific groups follow their own pathways; a risk calculator is not a prerequisite for all statins."
+      ],
+      "actions": [
+        "Use QRISK3 for eligible UK primary-prevention assessment. Established CVD, FH and other high-risk disease-specific groups follow their own pathways; a risk calculator is not a prerequisite for all statins.",
+        "Offer/optimise lipid-lowering treatment through the appropriate primary-/secondary-prevention or FH pathway.",
+        "Assess diet, activity, weight, smoking, medicines, alcohol, renal function and glycaemic status; thyroid testing when clinically indicated."
+      ]
+    },
+    {
+      "id": "high-triglyceridaemia",
+      "title": "Marked triglyceride elevation",
+      "findings": [
+        "Raised triglycerides interpreted by staged review",
+        "Assess symptoms, secondary causes and relevant family history"
+      ],
+      "interpretation": [
+        "Pancreatitis risk and CVD assessment require clinical context; secondary causes are common."
+      ],
+      "actions": [
+        "For triglycerides 4.5–9.9 mmol/L, optimise CVD risk and secondary causes; risk tools may underestimate risk. For 10–20 mmol/L, repeat fasting after at least 5 days and within 2 weeks, assess secondary causes and seek specialist advice if >10 persists. For >20 mmol/L not explained by excess alcohol or poor glycaemic control, arrange urgent specialist review through the adopted pathway. Pancreatitis symptoms require acute hospital assessment regardless of the band.",
+        "Review and address alcohol, glycaemic control, obesity, medicines, thyroid/renal disease; involve a dietitian/specialist for severe disease.",
+        "Choose fibrate or other treatment only through the adopted specialist/local pathway; genetic assessment depends on the complete phenotype/family history."
+      ]
+    }
+  ],
+  "furtherTesting": [
+    {
+      "id": "repeat-lipid-panel",
+      "test": "Indication-directed lipid and transaminase monitoring",
+      "rationale": [
+        "Review full lipid profile and liver transaminases about 2–3 months after treatment initiation or change, then risk-/treatment-appropriate ongoing review. Use the high-triglyceride pathway for timely fasting confirmation rather than routine annual-only review."
+      ],
+      "referenceIds": []
+    },
+    {
+      "id": "tsh-liver",
+      "test": "Baseline assessment and secondary causes",
+      "rationale": [
+        "Assess renal function, glycaemia, liver transaminases, medicines and alcohol before treatment as appropriate; check thyroid function when clinically indicated. Use the local lipid/statin pathway."
+      ],
+      "referenceIds": []
+    },
+    {
+      "id": "fh-specialist-assessment",
+      "test": "Familial hypercholesterolaemia specialist assessment",
+      "rationale": [
+        "Use Simon Broome/DLCN clinical criteria and specialist-directed FH genetic/cascade assessment when indicated. FH testing concerns appropriate genes such as LDLR/APOB/PCSK9; HFE is an iron-overload test."
+      ],
+      "referenceIds": []
+    }
+  ],
+  "referenceIds": [
+    "NICE-NG185"
+  ],
+  "clinicalValidation": {
+    "validated": true,
+    "reviewedBy": "Sean McGrory",
+    "reviewedOn": "2026-11-19",
+    "reviewerRole": "tAPUC",
+    "nextReviewDue": "2028-11-19",
+    "reviewNotes": "Review completed. No additional review comments recorded."
+  },
+  "specimens": [
+    {
+      "specimenTypeId": "other",
+      "quantity": 1,
+      "notes": "Confirm the current local lipid-profile tube, volume and handling with the reporting laboratory. Routine national CVD assessment may be non-fasting; Belfast biochemistry manual rev18 p93 specifies 14-hour fasting for triglycerides. Reconcile the requested test/clinical indication with that local service instruction, especially for high-TG follow-up."
+    }
+  ],
+  "attachments": [
+    {
+      "id": "rvh-clinical-biochemistry-manual",
+      "type": "pdf",
+      "title": "RVH Clinical Biochemistry Manual",
+      "label": "RVH Clinical Biochemistry Manual",
+      "path": "attachments/uncategorised/rvh-clinical-biochemistry-manual-v1.0.0.pdf",
+      "caption": null,
+      "source": null,
+      "referenceId": null,
+      "version": "1.0.0",
+      "sha256": "9235dcdfac8a7376156ccb55243270bcefc8ffb610482ddec2fbcdfa013c6904",
+      "mediaType": "application/pdf",
+      "originalFileName": "rvh-clinical-biochemistry-manual-v1.0.0.pdf",
+      "fileSize": 3100287,
+      "width": null,
+      "height": null,
+      "uploadedOn": "2026-11-19T03:07:12.380Z",
+      "uploadedBy": "Sean McGrory",
+      "replacementGovernance": null
+    }
+  ],
+  "prominentResources": [
+    {
+      "label": "RVH Clinical Biochemistry Manual",
+      "sourceType": "attachment",
+      "attachmentId": "rvh-clinical-biochemistry-manual"
+    }
+  ]
+}
