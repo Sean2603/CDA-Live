@@ -1,0 +1,271 @@
+{
+  "id": "perc-rule",
+  "title": "PERC rule",
+  "subtitle": "PE rule-out in selected very-low-risk adults",
+  "version": "0.0.1",
+  "minimumAppVersion": "0.63.6",
+  "status": "active",
+  "mode": "calculator",
+  "typeLabel": "Pulmonary embolism rule-out criterion",
+  "summary": "PERC is used only after pulmonary embolism has already been judged clinically very unlikely and a credible alternative diagnosis is more likely.",
+  "population": [
+    "Clinically stable adults aged 18 years or over in an appropriate acute-care setting when PE suspicion is low on overall clinical assessment and another diagnosis is feasible."
+  ],
+  "exclusions": [
+    "Do not use in children, pregnancy or puerperium, haemodynamic instability or severe illness, suspected PE during therapeutic anticoagulation, or as a standalone prehospital discharge rule.",
+    "NICE notes that PERC has not been validated in people with COVID-19."
+  ],
+  "criteria": [
+    {
+      "id": "low-clinical-probability",
+      "label": "PE suspicion is low on overall clinical assessment",
+      "description": "Estimated pre-test probability below about 15%, with no unresolved features making PE a realistic diagnosis.",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 0,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "alternative-diagnosis-more-likely",
+      "label": "Another diagnosis is feasible",
+      "description": "For example chest-wall pain reproduced by focal palpation or movement, without unexplained dyspnoea, syncope, hypoxia or unilateral leg findings.",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 0,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "age-50-or-older",
+      "label": "Age 50 years or older",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "pulse-100-or-higher",
+      "label": "Pulse 100/min or higher",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "oxygen-saturation-below-95",
+      "label": "Oxygen saturation below 95% on room air",
+      "description": "An oxygen-supported or unobtainable room-air measurement cannot satisfy PERC rule-out. Do not remove clinically required oxygen to obtain a value.",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "unilateral-leg-swelling",
+      "label": "Unilateral leg swelling",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "haemoptysis",
+      "label": "Haemoptysis",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "recent-surgery-or-trauma",
+      "label": "Surgery or trauma within the previous 4 weeks requiring hospitalisation",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "previous-dvt-or-pe",
+      "label": "Previous DVT or PE",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "exogenous-oestrogen",
+      "label": "Exogenous oestrogen use",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    }
+  ],
+  "results": [
+    {
+      "id": "not-applicable",
+      "minimumScore": -99,
+      "maximumScore": -1,
+      "label": "PERC not yet applicable",
+      "interpretation": [
+        "Confirm that PE is already clinically very unlikely and that a credible alternative diagnosis is more likely."
+      ],
+      "actions": [
+        "If PE remains suspected and PERC eligibility is absent or uncertain, follow the suspected PE pathway"
+      ]
+    },
+    {
+      "id": "negative",
+      "minimumScore": 0,
+      "maximumScore": 0,
+      "label": "PERC negative",
+      "interpretation": [
+        "Within a correctly selected low-risk population, PE is sufficiently unlikely that further PE testing is generally not required. PE is not impossible, and overall disposition must consider other diagnoses."
+      ],
+      "actions": [
+        "Document eligibility and all 8 negative criteria; further PE testing is generally not needed",
+        "Base disposition on the complete assessment and other diagnoses; provide safety-net advice if discharged"
+      ]
+    },
+    {
+      "id": "positive",
+      "minimumScore": 1,
+      "maximumScore": 8,
+      "label": "PERC positive",
+      "interpretation": [
+        "PE cannot be ruled out using PERC. This does not diagnose PE; continue through the appropriate PE assessment pathway."
+      ],
+      "actions": [
+        "PERC cannot exclude PE. If PE remains suspected, use the 2-level PE Wells pathway",
+        "Wells 4 or less leads to D-dimer; Wells above 4 leads to immediate imaging. Follow the receiving pathway for delays, interim anticoagulation and disposition"
+      ]
+    }
+  ],
+  "overrides": [
+    "PERC is used only after low clinical suspicion is established; do not infer eligibility from a Wells score.",
+    "A positive PERC result does not diagnose PE and does not itself indicate imaging, admission or anticoagulation."
+  ],
+  "limitations": [
+    "Eligibility is a prerequisite and is not part of the numerical score.",
+    "All eight PERC criteria must be negative for a negative result."
+  ],
+  "calculationStrategy": "custom",
+  "referenceIds": [
+    "NICE-NG158",
+    "PERC-KLINE-2008"
+  ],
+  "clinicalValidation": {
+    "validated": true,
+    "reviewedBy": "Sean McGrory",
+    "reviewedOn": "2026-11-19",
+    "reviewerRole": "tAPUC",
+    "nextReviewDue": "2028-11-19",
+    "reviewNotes": "Review completed. No additional review comments recorded."
+  },
+  "evaluation": {
+    "kind": "required-sum",
+    "scoreCriteria": [
+      "age-50-or-older",
+      "pulse-100-or-higher",
+      "oxygen-saturation-below-95",
+      "unilateral-leg-swelling",
+      "haemoptysis",
+      "recent-surgery-or-trauma",
+      "previous-dvt-or-pe",
+      "exogenous-oestrogen"
+    ],
+    "requiredTrue": [
+      "low-clinical-probability",
+      "alternative-diagnosis-more-likely"
+    ],
+    "failureScore": -1,
+    "failureResultId": "not-applicable",
+    "groups": [],
+    "decisionRules": []
+  },
+  "parityCases": [
+    {
+      "id": "not-applicable",
+      "description": "PERC prerequisites are not confirmed.",
+      "inputs": {
+        "low-clinical-probability": false,
+        "alternative-diagnosis-more-likely": false,
+        "age-50-or-older": false,
+        "pulse-100-or-higher": false,
+        "oxygen-saturation-below-95": false,
+        "unilateral-leg-swelling": false,
+        "haemoptysis": false,
+        "recent-surgery-or-trauma": false,
+        "previous-dvt-or-pe": false,
+        "exogenous-oestrogen": false
+      },
+      "expectedScore": -1,
+      "expectedResultId": "not-applicable"
+    },
+    {
+      "id": "perc-negative",
+      "description": "Prerequisites confirmed and all eight PERC criteria negative.",
+      "inputs": {
+        "low-clinical-probability": true,
+        "alternative-diagnosis-more-likely": true,
+        "age-50-or-older": false,
+        "pulse-100-or-higher": false,
+        "oxygen-saturation-below-95": false,
+        "unilateral-leg-swelling": false,
+        "haemoptysis": false,
+        "recent-surgery-or-trauma": false,
+        "previous-dvt-or-pe": false,
+        "exogenous-oestrogen": false
+      },
+      "expectedScore": 0,
+      "expectedResultId": "negative"
+    },
+    {
+      "id": "perc-positive",
+      "description": "Prerequisites confirmed with one positive PERC criterion.",
+      "inputs": {
+        "low-clinical-probability": true,
+        "alternative-diagnosis-more-likely": true,
+        "age-50-or-older": true,
+        "pulse-100-or-higher": false,
+        "oxygen-saturation-below-95": false,
+        "unilateral-leg-swelling": false,
+        "haemoptysis": false,
+        "recent-surgery-or-trauma": false,
+        "previous-dvt-or-pe": false,
+        "exogenous-oestrogen": false
+      },
+      "expectedScore": 1,
+      "expectedResultId": "positive"
+    }
+  ],
+  "attachments": [],
+  "prominentResources": [
+    {
+      "label": "NICE VTE diagnostic guidance",
+      "sourceType": "url",
+      "url": "https://www.nice.org.uk/guidance/ng158/chapter/recommendations"
+    },
+    {
+      "label": "Original PERC multicentre validation",
+      "sourceType": "url",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/18318689/"
+    }
+  ]
+}
