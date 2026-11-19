@@ -1,0 +1,176 @@
+{
+  "id": "centor-criteria",
+  "title": "Centor criteria",
+  "subtitle": "Alternative acute sore-throat score",
+  "version": "0.0.1",
+  "minimumAppVersion": "0.63.6",
+  "status": "active",
+  "mode": "calculator",
+  "typeLabel": "Antibiotic decision support",
+  "summary": "Centor estimates likelihood of group A streptococcal infection and is not an airway or sepsis rule-out tool.",
+  "population": [
+    "People with acute pharyngitis or tonsillitis undergoing clinical assessment; the original score was derived in adults."
+  ],
+  "exclusions": [
+    "Use the appropriate paediatric pathway for children; assess children under 5 with fever using NICE guidance on fever in under 5s.",
+    "Do not delay emergency assessment for airway compromise, severe systemic illness or suppurative complications."
+  ],
+  "criteria": [
+    {
+      "id": "tonsillar-exudate",
+      "label": "Tonsillar exudate",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "tender-anterior-cervical-nodes",
+      "label": "Tender anterior cervical lymphadenopathy",
+      "description": "Painful/tender nodes at the front of the neck.",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "fever-history",
+      "label": "History of fever above 38 �C",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "absence-cough",
+      "label": "Absence of cough",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    }
+  ],
+  "results": [
+    {
+      "id": "low",
+      "minimumScore": 0,
+      "maximumScore": 2,
+      "label": "Do not offer antibiotics for uncomplicated acute sore throat",
+      "interpretation": [
+        "At Centor 0�2, antibiotics are not routinely indicated for uncomplicated acute sore throat."
+      ],
+      "actions": [
+        "Advise fluids and suitable analgesia; explain that symptoms commonly last about 1 week",
+        "Advise prompt medical help for rapid or significant worsening or systemic illness, or if improvement has not begun after 1 week"
+      ]
+    },
+    {
+      "id": "higher",
+      "minimumScore": 3,
+      "maximumScore": 4,
+      "label": "More likely to benefit",
+      "interpretation": [
+        "The patient is more likely to benefit from an immediate or back-up antibiotic, depending on clinical findings and local guidance."
+      ],
+      "actions": [
+        "Consider an immediate or back-up antibiotic after clinical assessment; if treatment is indicated, phenoxymethylpenicillin is first line, with alternatives guided by allergy, pregnancy and current local policy",
+        "If a back-up prescription is issued, advise use if improvement has not started within 3 to 5 days or symptoms worsen rapidly or significantly",
+        "Advise prompt medical help for marked worsening or systemic illness"
+      ]
+    }
+  ],
+  "overrides": [
+    "Escalate immediately for suspected airway compromise. Refer to hospital for severe systemic infection or a severe suppurative complication such as quinsy, deep-neck abscess or Lemierre syndrome.",
+    "People who are systemically very unwell, have signs of a more serious condition or are at high risk of complications need an immediate antibiotic decision under the relevant pathway regardless of score."
+  ],
+  "limitations": [
+    "Do not use as a standalone prescribing or disposition instruction."
+  ],
+  "calculationStrategy": "sum",
+  "referenceIds": [
+    "NICE-NG84",
+    "CENTOR-1981"
+  ],
+  "clinicalValidation": {
+    "validated": true,
+    "reviewedBy": "Sean McGrory",
+    "reviewedOn": "2026-11-19",
+    "reviewerRole": "tAPUC",
+    "nextReviewDue": "2028-11-19",
+    "reviewNotes": "Review completed. No additional review comments recorded."
+  },
+  "evaluation": {
+    "kind": "sum",
+    "scoreCriteria": null,
+    "requiredTrue": [],
+    "failureScore": null,
+    "failureResultId": null,
+    "groups": [],
+    "decisionRules": []
+  },
+  "parityCases": [
+    {
+      "id": "result-low",
+      "description": "Executable case for result band: Antibiotics generally not indicated.",
+      "inputs": {
+        "tonsillar-exudate": false,
+        "tender-anterior-cervical-nodes": false,
+        "fever-history": false,
+        "absence-cough": false
+      },
+      "expectedScore": 0,
+      "expectedResultId": "low"
+    },
+    {
+      "id": "result-higher",
+      "description": "Executable case for result band: More likely to benefit.",
+      "inputs": {
+        "tonsillar-exudate": false,
+        "tender-anterior-cervical-nodes": true,
+        "fever-history": true,
+        "absence-cough": true
+      },
+      "expectedScore": 3,
+      "expectedResultId": "higher"
+    },
+    {
+      "id": "maximum-score",
+      "description": "All criteria set to their highest scoring values.",
+      "inputs": {
+        "tonsillar-exudate": true,
+        "tender-anterior-cervical-nodes": true,
+        "fever-history": true,
+        "absence-cough": true
+      },
+      "expectedScore": 4,
+      "expectedResultId": "higher"
+    },
+    {
+      "id": "upper-low-boundary",
+      "description": "Two criteria remains in the low band.",
+      "inputs": {
+        "tonsillar-exudate": true,
+        "tender-anterior-cervical-nodes": true,
+        "fever-history": false,
+        "absence-cough": false
+      },
+      "expectedScore": 2,
+      "expectedResultId": "low"
+    }
+  ],
+  "attachments": [],
+  "prominentResources": [
+    {
+      "label": "NICE acute sore throat guidance",
+      "sourceType": "url",
+      "url": "https://www.nice.org.uk/guidance/ng84/chapter/Recommendations"
+    }
+  ]
+}

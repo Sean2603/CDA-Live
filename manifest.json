@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
-  "contentVersion": "0.0.3",
-  "updatedAt": "2026-11-19T02:12:48Z",
+  "contentVersion": "0.0.5",
+  "updatedAt": "2026-11-19T03:12:19Z",
   "appFeatureAvailability": {
     "version": "1.0.0",
     "file": "app_config/feature-availability.json",
@@ -13,11 +13,11 @@
   },
   "emergencyRevocations": [],
   "minimumAppVersion": "0.63.6",
-  "downloadSizeBytes": 33927,
+  "downloadSizeBytes": 3198886,
   "references": {
     "file": "references/references.json",
-    "sha256": "a809ffad76dd0a7488cf8d01e9197ac9e2f984eb8a5d09294ef8daeef3580b82",
-    "sizeBytes": 76
+    "sha256": "77edc4f00386e15e69c06eb9d5eb779b17af729623f92a2b5497436eab3b6074",
+    "sizeBytes": 6652
   },
   "assessmentCategories": {
     "file": "categories/assessment-categories.json",
@@ -38,7 +38,44 @@
   },
   "assessments": [],
   "guidelines": [],
-  "scoringTools": [],
+  "scoringTools": [
+    {
+      "id": "centor-criteria",
+      "title": "Centor criteria",
+      "version": "0.0.1",
+      "file": "scoring_tools/centor-criteria.json",
+      "schema": "schema/scoring-tool-schema.json",
+      "sha256": "43f9775037986e30c5921da605262d4c4a999a26a4adaa0eec755959ce19fa29",
+      "schemaSha256": "74c2c32f6bc056ab04da0aeb31e94db6258913a7033a761a8c5500d41cfb6db9",
+      "sizeBytes": 5883,
+      "schemaSizeBytes": 21475,
+      "attachmentsSizeBytes": 0
+    },
+    {
+      "id": "feverpain",
+      "title": "FeverPAIN",
+      "version": "0.0.1",
+      "file": "scoring_tools/feverpain.json",
+      "schema": "schema/scoring-tool-schema.json",
+      "sha256": "1c327945719ce489f7565b6452537514e2e18e95ba8bc09978dfa855333b3568",
+      "schemaSha256": "74c2c32f6bc056ab04da0aeb31e94db6258913a7033a761a8c5500d41cfb6db9",
+      "sizeBytes": 7202,
+      "schemaSizeBytes": 21475,
+      "attachmentsSizeBytes": 0
+    },
+    {
+      "id": "perc-rule",
+      "title": "PERC rule",
+      "version": "0.0.1",
+      "file": "scoring_tools/perc-rule.json",
+      "schema": "schema/scoring-tool-schema.json",
+      "sha256": "83ebd5be91277129f07adbff6ac6747a6507a221c12108a9d8880d1048deffa2",
+      "schemaSha256": "74c2c32f6bc056ab04da0aeb31e94db6258913a7033a761a8c5500d41cfb6db9",
+      "sizeBytes": 8898,
+      "schemaSizeBytes": 21475,
+      "attachmentsSizeBytes": 0
+    }
+  ],
   "bloodPanels": [
     {
       "id": "c-reactive-protein",
@@ -51,6 +88,18 @@
       "sizeBytes": 13117,
       "schemaSizeBytes": 18537,
       "attachmentsSizeBytes": 0
+    },
+    {
+      "id": "lipid-profile",
+      "title": "Lipid profile",
+      "version": "1.0.2",
+      "file": "blood_panels/lipid-profile.json",
+      "schema": "schema/blood-panel-schema.json",
+      "sha256": "d962aec482142f6b4c52c543c40079c79d22ec21da174b391246460d7cb8386a",
+      "schemaSha256": "54daa461f1ef70661afabd69bd0549bb339ceda0e9af099daedf41b5be0b8278",
+      "sizeBytes": 14638,
+      "schemaSizeBytes": 18537,
+      "attachmentsSizeBytes": 3100287
     }
   ],
   "medications": [],

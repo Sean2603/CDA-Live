@@ -1,4 +1,70 @@
 {
   "generated": true,
-  "references": []
+  "references": [
+    {
+      "referenceId": "CENTOR-1981",
+      "usedBy": [
+        {
+          "type": "scoring-tool",
+          "id": "centor-criteria",
+          "title": "Centor criteria"
+        }
+      ]
+    },
+    {
+      "referenceId": "FEVERPAIN-PRISM-2013",
+      "usedBy": [
+        {
+          "type": "scoring-tool",
+          "id": "feverpain",
+          "title": "FeverPAIN"
+        }
+      ]
+    },
+    {
+      "referenceId": "NICE-NG158",
+      "usedBy": [
+        {
+          "type": "scoring-tool",
+          "id": "perc-rule",
+          "title": "PERC rule"
+        }
+      ]
+    },
+    {
+      "referenceId": "NICE-NG185",
+      "usedBy": [
+        {
+          "type": "blood-panel",
+          "id": "lipid-profile",
+          "title": "Lipid profile"
+        }
+      ]
+    },
+    {
+      "referenceId": "NICE-NG84",
+      "usedBy": [
+        {
+          "type": "scoring-tool",
+          "id": "centor-criteria",
+          "title": "Centor criteria"
+        },
+        {
+          "type": "scoring-tool",
+          "id": "feverpain",
+          "title": "FeverPAIN"
+        }
+      ]
+    },
+    {
+      "referenceId": "PERC-KLINE-2008",
+      "usedBy": [
+        {
+          "type": "scoring-tool",
+          "id": "perc-rule",
+          "title": "PERC rule"
+        }
+      ]
+    }
+  ]
 }
