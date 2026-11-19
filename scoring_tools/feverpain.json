@@ -1,0 +1,229 @@
+{
+  "id": "feverpain",
+  "title": "FeverPAIN",
+  "subtitle": "Acute sore-throat antibiotic decision support",
+  "version": "0.0.1",
+  "minimumAppVersion": "0.63.6",
+  "status": "active",
+  "mode": "calculator",
+  "typeLabel": "Antibiotic decision support",
+  "summary": "FeverPAIN supports antibiotic decisions in acute sore throat alongside assessment for airway compromise, deep-neck infection and sepsis.",
+  "population": [
+    "People aged 3 years or over with an acute infective sore throat and an examinable pharynx; evidence is limited in very young children."
+  ],
+  "exclusions": [
+    "Assess febrile children under 5 using the appropriate fever pathway.",
+    "Do not delay emergency assessment for airway compromise, severe systemic illness or suppurative complications."
+  ],
+  "criteria": [
+    {
+      "id": "fever",
+      "label": "Fever during the previous 24 hours",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "purulence",
+      "label": "Purulence on the tonsils",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "attend-rapidly",
+      "label": "Attend rapidly: symptoms began within the previous 3 days",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "inflamed-tonsils",
+      "label": "Severely inflamed tonsils",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    },
+    {
+      "id": "no-cough-coryza",
+      "label": "No cough or coryza",
+      "description": "",
+      "inputType": "boolean",
+      "unit": "",
+      "scoreWhenTrue": 1,
+      "rules": [],
+      "choices": []
+    }
+  ],
+  "results": [
+    {
+      "id": "low",
+      "minimumScore": 0,
+      "maximumScore": 1,
+      "label": "Do not offer antibiotics for uncomplicated acute sore throat",
+      "interpretation": [
+        "Antibiotics are generally not indicated."
+      ],
+      "actions": [
+        "Advise fluids and suitable analgesia; explain that symptoms commonly last about 1 week",
+        "Advise prompt help for rapid or significant worsening or systemic illness, or if improvement has not begun after 1 week"
+      ]
+    },
+    {
+      "id": "intermediate",
+      "minimumScore": 2,
+      "maximumScore": 3,
+      "label": "Consider no or back-up antibiotic",
+      "interpretation": [
+        "Consider no antibiotic or a back-up prescription according to the clinical picture and local antimicrobial guidance."
+      ],
+      "actions": [
+        "Consider no antibiotic with safety netting, or a back-up prescription",
+        "If issued, advise use if improvement has not started within 3 to 5 days or symptoms worsen rapidly or significantly",
+        "Advise prompt medical help for marked worsening or systemic illness"
+      ]
+    },
+    {
+      "id": "high",
+      "minimumScore": 4,
+      "maximumScore": 5,
+      "label": "Consider antibiotic",
+      "interpretation": [
+        "Consider an immediate or back-up antibiotic according to the clinical picture and local antimicrobial guidance."
+      ],
+      "actions": [
+        "Consider an immediate or back-up antibiotic after clinical assessment; if treatment is indicated, phenoxymethylpenicillin is first line, with alternatives guided by allergy, pregnancy and current local policy",
+        "Advise prompt medical help for marked worsening or systemic illness"
+      ]
+    }
+  ],
+  "overrides": [
+    "Escalate immediately for suspected airway compromise. Refer to hospital for severe systemic infection or a severe suppurative complication such as quinsy, deep-neck abscess or Lemierre syndrome.",
+    "People who are systemically very unwell, have signs of a more serious condition or are at high risk of complications need an immediate antibiotic decision under the relevant pathway regardless of score."
+  ],
+  "limitations": [
+    "The score does not exclude epiglottitis, peritonsillar abscess, retropharyngeal infection or sepsis."
+  ],
+  "calculationStrategy": "sum",
+  "referenceIds": [
+    "NICE-NG84",
+    "FEVERPAIN-PRISM-2013"
+  ],
+  "clinicalValidation": {
+    "validated": true,
+    "reviewedBy": "Sean McGrory",
+    "reviewedOn": "2026-11-19",
+    "reviewerRole": "tAPUC",
+    "nextReviewDue": "2028-11-19",
+    "reviewNotes": "Review completed. No additional review comments recorded."
+  },
+  "evaluation": {
+    "kind": "sum",
+    "scoreCriteria": null,
+    "requiredTrue": [],
+    "failureScore": null,
+    "failureResultId": null,
+    "groups": [],
+    "decisionRules": []
+  },
+  "parityCases": [
+    {
+      "id": "result-low",
+      "description": "Executable case for result band: Antibiotics generally not indicated.",
+      "inputs": {
+        "fever": false,
+        "purulence": false,
+        "attend-rapidly": false,
+        "inflamed-tonsils": false,
+        "no-cough-coryza": false
+      },
+      "expectedScore": 0,
+      "expectedResultId": "low"
+    },
+    {
+      "id": "result-intermediate",
+      "description": "Executable case for result band: Consider no or back-up antibiotic.",
+      "inputs": {
+        "fever": false,
+        "purulence": false,
+        "attend-rapidly": false,
+        "inflamed-tonsils": true,
+        "no-cough-coryza": true
+      },
+      "expectedScore": 2,
+      "expectedResultId": "intermediate"
+    },
+    {
+      "id": "result-high",
+      "description": "Executable case for result band: Consider antibiotic.",
+      "inputs": {
+        "fever": false,
+        "purulence": true,
+        "attend-rapidly": true,
+        "inflamed-tonsils": true,
+        "no-cough-coryza": true
+      },
+      "expectedScore": 4,
+      "expectedResultId": "high"
+    },
+    {
+      "id": "maximum-score",
+      "description": "All criteria set to their highest scoring values.",
+      "inputs": {
+        "fever": true,
+        "purulence": true,
+        "attend-rapidly": true,
+        "inflamed-tonsils": true,
+        "no-cough-coryza": true
+      },
+      "expectedScore": 5,
+      "expectedResultId": "high"
+    },
+    {
+      "id": "score-one-boundary",
+      "description": "FeverPAIN 1 remains low.",
+      "inputs": {
+        "fever": true,
+        "purulence": false,
+        "attend-rapidly": false,
+        "inflamed-tonsils": false,
+        "no-cough-coryza": false
+      },
+      "expectedScore": 1,
+      "expectedResultId": "low"
+    },
+    {
+      "id": "score-three-boundary",
+      "description": "FeverPAIN 3 remains intermediate.",
+      "inputs": {
+        "fever": true,
+        "purulence": true,
+        "attend-rapidly": true,
+        "inflamed-tonsils": false,
+        "no-cough-coryza": false
+      },
+      "expectedScore": 3,
+      "expectedResultId": "intermediate"
+    }
+  ],
+  "attachments": [],
+  "prominentResources": [
+    {
+      "label": "NICE acute sore throat guidance",
+      "sourceType": "url",
+      "url": "https://www.nice.org.uk/guidance/ng84/chapter/Recommendations"
+    }
+  ]
+}
