@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
-  "contentVersion": "0.0.2",
-  "updatedAt": "2026-11-17T20:36:19Z",
+  "contentVersion": "0.0.3",
+  "updatedAt": "2026-11-19T02:12:48Z",
   "appFeatureAvailability": {
     "version": "1.0.0",
     "file": "app_config/feature-availability.json",
@@ -13,16 +13,11 @@
   },
   "emergencyRevocations": [],
   "minimumAppVersion": "0.63.6",
-  "downloadSizeBytes": 4279,
+  "downloadSizeBytes": 33927,
   "references": {
     "file": "references/references.json",
-    "sha256": "b35d7c35e0dff127eb662c8949476965bfec7455f53aa6fb62844fb26cc7ed2e",
-    "sizeBytes": 1481
-  },
-  "glossary": {
-    "file": "glossary/glossary.json",
-    "sha256": "95f5a6b9f81d27a2b4d210941e36649427466132fc5288ee6734d15380182b36",
-    "sizeBytes": 601
+    "sha256": "a809ffad76dd0a7488cf8d01e9197ac9e2f984eb8a5d09294ef8daeef3580b82",
+    "sizeBytes": 76
   },
   "assessmentCategories": {
     "file": "categories/assessment-categories.json",
@@ -44,7 +39,20 @@
   "assessments": [],
   "guidelines": [],
   "scoringTools": [],
-  "bloodPanels": [],
+  "bloodPanels": [
+    {
+      "id": "c-reactive-protein",
+      "title": "C-reactive protein",
+      "version": "1.2.2",
+      "file": "blood_panels/c-reactive-protein.json",
+      "schema": "schema/blood-panel-schema.json",
+      "sha256": "c17c40ebb831b4ecc06ae45db721c9af870490e2b7c2cb016aeab57666caf710",
+      "schemaSha256": "54daa461f1ef70661afabd69bd0549bb339ceda0e9af099daedf41b5be0b8278",
+      "sizeBytes": 13117,
+      "schemaSizeBytes": 18537,
+      "attachmentsSizeBytes": 0
+    }
+  ],
   "medications": [],
   "prescribing": [],
   "procedures": [],
