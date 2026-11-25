@@ -229,6 +229,7 @@
       "additionalProperties": false,
       "required": [
         "population",
+        "ageGroup",
         "dose",
         "route",
         "frequency",
@@ -241,6 +242,14 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "ageGroup": {
+          "type": "string",
+          "enum": [
+            "adult",
+            "child",
+            "both"
           ]
         },
         "dose": {

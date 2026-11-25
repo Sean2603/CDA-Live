@@ -196,6 +196,7 @@
       "additionalProperties": false,
       "required": [
         "rank",
+        "ageGroup",
         "label",
         "components",
         "restrictions",
@@ -205,6 +206,14 @@
         "rank": {
           "type": "integer",
           "minimum": 1
+        },
+        "ageGroup": {
+          "type": "string",
+          "enum": [
+            "adult",
+            "child",
+            "both"
+          ]
         },
         "label": {
           "type": "string",
