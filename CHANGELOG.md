@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-25 — Prescribing cross-file rules (tooling)
+
+- `tool/validate_content.py` now enforces, for prescribing content: unique `rank` and unique `prescribingChoiceLabel` within a pathway; an explicit `relationship` when a choice has more than one component; no link to a `superseded` pathway (as well as `withdrawn`); no `withdrawn` medicine in an `active` pathway; every pathway component has a matching indication regimen in the medicine (backlink); a medicine's `ageGroup` matches a choice of its pathway; at most one active pathway per condition and care setting.
+- Schemas unchanged. Companion CDM change: the same rules in `src/lib/content-validation.ts` and `src/lib/prescribing-cross-links.ts` (see CROSS-REPO.md XR-016).
+
 ## 2026-11-25 — ageGroup accepts both
 
 - `schema/medication-schema.json` (`indicationRegimen`) and `schema/prescribing-schema.json` (pathway `regimen`): the `ageGroup` enum is now `"adult"`, `"child"` or `"both"`. `validate_content.py` validates through the schemas, so no code change was needed.

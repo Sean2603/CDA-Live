@@ -374,6 +374,7 @@ def validate_collection(kind: str, settings: dict, known_reference_ids: set[str]
             continue
         if recursive and isinstance(value, dict):
             prescribing_folder_errors(path, value, directory, errors)
+            prescribing_regimen_errors(path, value, errors)
         item_id = value.get("id")
         if not isinstance(item_id,str) or not item_id:
             errors.append(f"{path}: missing valid id.")
@@ -417,15 +418,49 @@ def validate_assessment_categories(errors: list[str]) -> set[str]:
         errors.append("Assessment categories must include uncategorised.")
     return {item for item in ids if isinstance(item,str)}
 
+def prescribing_regimen_errors(path: Path, value: dict, errors: list[str]) -> None:
+    """Pathway regimens: unique ranks and labels, and an explicit relationship when a choice has several medicines."""
+    label = path.relative_to(ROOT).as_posix()
+    ranks: dict[int,int] = {}
+    labels: dict[str,int] = {}
+    for index, regimen in enumerate(value.get("regimens",[])):
+        if not isinstance(regimen,dict):
+            continue
+        rank = regimen.get("rank")
+        if isinstance(rank,int) and not isinstance(rank,bool):
+            if rank in ranks:
+                errors.append(f"{label}: regimens[{index}].rank {rank} is already used by regimens[{ranks[rank]}]; ranks must be unique.")
+            else:
+                ranks[rank] = index
+        text = regimen.get("label")
+        if isinstance(text,str) and text.strip():
+            key = text.strip()
+            if key in labels:
+                errors.append(f"{label}: regimens[{index}].label {key!r} duplicates regimens[{labels[key]}]; labels must be unique so medicines link to one choice.")
+            else:
+                labels[key] = index
+        components = regimen.get("components",[])
+        if isinstance(components,list) and len(components) > 1 and "relationship" not in regimen:
+            errors.append(f"{label}: regimens[{index}] has {len(components)} components and must state relationship (AND or OR) explicitly.")
+
 def validate_cross_links(documents_by_kind: dict[str,dict[str,dict]], errors: list[str]) -> None:
     medications = documents_by_kind["medication"]
     prescribing = documents_by_kind["prescribing"]
+    pending_backlinks: list[tuple[str,str,str]] = []
     for pathway_id,pathway in prescribing.items():
         for regimen in pathway.get("regimens",[]):
             for component in regimen.get("components",[]):
                 medication_id = component.get("medicationId")
-                if medication_id and medication_id not in medications:
+                if not medication_id:
+                    continue
+                medication = medications.get(medication_id)
+                if medication is None:
                     errors.append(f"prescribing/{pathway_id}: component medicationId {medication_id!r} does not resolve to medications/{medication_id}.json")
+                    continue
+                if pathway.get("status") == "active" and medication.get("status") == "withdrawn":
+                    errors.append(f"prescribing/{pathway_id}: component medicationId {medication_id!r} is withdrawn but the pathway is active.")
+                pending_backlinks.append((medication_id, pathway_id, regimen.get("label")))
+    backlinks: set[tuple[str,str,str]] = set()
     for medication_id,medication in medications.items():
         for indication in medication.get("indications",[]):
             for regimen in indication.get("regimens",[]):
@@ -438,9 +473,9 @@ def validate_cross_links(documents_by_kind: dict[str,dict[str,dict]], errors: li
                 if pathway is None:
                     errors.append(f"medications/{medication_id}: prescribingPathwayId {pathway_id!r} does not resolve.")
                     continue
-                if pathway.get("status") == "withdrawn":
-                    # The app rejects the whole pack for a link to a withdrawn pathway.
-                    errors.append(f"medications/{medication_id}: prescribingPathwayId {pathway_id!r} is withdrawn.")
+                if pathway.get("status") in {"withdrawn","superseded"}:
+                    # The app rejects the whole pack for a link to a withdrawn or superseded pathway.
+                    errors.append(f"medications/{medication_id}: prescribingPathwayId {pathway_id!r} is {pathway.get('status')}.")
                     continue
                 matches = [choice for choice in pathway.get("regimens",[]) if choice.get("label") == choice_label]
                 if not matches:
@@ -448,6 +483,23 @@ def validate_cross_links(documents_by_kind: dict[str,dict[str,dict]], errors: li
                     continue
                 if not any(any(component.get("medicationId") == medication_id for component in choice.get("components",[])) for choice in matches):
                     errors.append(f"medications/{medication_id}: {pathway_id} choice {choice_label!r} does not link back to this medication.")
+                    continue
+                if not any(choice.get("ageGroup") == regimen.get("ageGroup") for choice in matches):
+                    errors.append(f"medications/{medication_id}: ageGroup {regimen.get('ageGroup')!r} does not match {pathway_id} choice {choice_label!r}.")
+                backlinks.add((medication_id,pathway_id,choice_label))
+    for medication_id,pathway_id,choice_label in pending_backlinks:
+        if (medication_id,pathway_id,choice_label) not in backlinks:
+            errors.append(f"prescribing/{pathway_id}: component {medication_id!r} in choice {choice_label!r} has no matching indication regimen in medications/{medication_id}.json.")
+    # A condition may appear in several care settings, but only once per setting among active pathways.
+    seen: dict[tuple[str,str],str] = {}
+    for pathway_id,pathway in prescribing.items():
+        if pathway.get("status") != "active":
+            continue
+        key = (pathway.get("conditionId") or pathway_id, pathway.get("careSetting","primary-care"))
+        if key in seen:
+            errors.append(f"prescribing/{pathway_id}: condition {key[0]!r} in care setting {key[1]!r} is already used by {seen[key]}.")
+        else:
+            seen[key] = pathway_id
 
 LINE_ENDING_EXCLUDED_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".claude", ".agents", ".windsurf"}
 
