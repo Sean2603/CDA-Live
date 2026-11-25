@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-25 — Reference review window (tooling)
+
+- `tool/validate_references.py`: a current reference's `nextReviewDue` is its expiry date. Warning from 7 days before through the expiry day; warning "expired" after it (not a failure; citing expired content is blocked in CDM); publish block (error, with or without `--strict`) from `nextReviewDue` + 90 days (2026-12-31 gives 2027-03-31). Replaces the old overdue warning and the 30-day due-soon warning. CDM owns re-verification and the extension cap.
+- `tool/validate_references.py`: removed the duplicate `--strict` "review is overdue" warning for cited references, so each overdue reference gets exactly one message from `review_window()`.
+- New `tool/test_reference_review_window.py` (assert-based self-test). Schemas and content unchanged.
+- Not committed.
+- Bumped CDA from `0.0.2` to `0.0.3`.
+
+## 2026-11-25 — Publication gates (tooling)
+
+- `tool/validate_content.py` now also rejects: overlapping or gapped scoring-tool result bands (per result set and per alternate mode; overlap allowed when the tool has escalations; gap step = finest decimal place used in the set), mirroring the app's `_validateResultBandCoverage`; any `date-time` field that is not a real RFC 3339 date-time and any `date` field that is not a real calendar date (strict regex plus calendar check, because `FormatChecker` passes `date-time` silently); notices whose `expiresOn` is before `effectiveFrom`; notices with an `affectedContentType` whose `affectedContentId` is missing or not a published item of that type; procedures with status `draft`; a feature-availability file that does not list all 10 feature IDs (the legacy 9-feature shape is no longer accepted).
+- New `tool/test_publication_gates.py` (assert-based self-test). Schemas and content unchanged; no existing content is rejected.
+- Companion CDM change: mirror each rule in `src/lib/content-validation.ts` / `src/lib/semantic-validation.ts` (see CROSS-REPO.md). Not committed.
+- Bumped CDA from `0.0.1` to `0.0.2`.
+
 ## 2026-11-25 — Prescribing cross-file rules (tooling)
 
 - `tool/validate_content.py` now enforces, for prescribing content: unique `rank` and unique `prescribingChoiceLabel` within a pathway; an explicit `relationship` when a choice has more than one component; no link to a `superseded` pathway (as well as `withdrawn`); no `withdrawn` medicine in an `active` pathway; every pathway component has a matching indication regimen in the medicine (backlink); a medicine's `ageGroup` matches a choice of its pathway; at most one active pathway per condition and care setting.

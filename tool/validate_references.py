@@ -27,7 +27,34 @@ def parse_date(value):
     return None if value is None else date.fromisoformat(value)
 
 
-REFERENCE_ID_LIST_KEYS = {"references", "referenceIds"}
+WARN_DAYS_BEFORE = 7
+GRACE_DAYS_AFTER = 90
+
+
+def review_window(due, today):
+    """Return (level, text) for a current reference, or None when no message is due.
+
+    nextReviewDue is the expiry date: warn from 7 days before through the expiry
+    day, warn "expired" after it, and error from due + 90 days (publish block).
+    Citing expired content is blocked in CDM, not here.
+    """
+    if due is None:
+        return None
+    days_late = (today - due).days
+    if days_late >= GRACE_DAYS_AFTER:
+        return "error", (
+            "reference is more than 90 days past its review date; "
+            "publication is blocked until it is re-verified "
+            f"(review date {due.isoformat()})."
+        )
+    if days_late > 0:
+        return "warning", f"review expired {due.isoformat()}."
+    if -days_late <= WARN_DAYS_BEFORE:
+        return "warning", f"review expires on {due.isoformat()}."
+    return None
+
+
+REFERENCE_ID_LIST_KEYS ={"references", "referenceIds"}
 
 
 def collect_reference_ids(value):
@@ -101,17 +128,11 @@ def main() -> int:
                         f"{reference_id}: current reference requires {field}."
                     )
 
-            if due is not None and due < today:
-                message = (
-                    f"{reference_id}: review overdue since {due.isoformat()}."
-                )
-                if args.strict:
-                    errors.append(message)
-                else:
-                    warnings.append(message)
-            elif due is not None and due <= today + timedelta(days=30):
-                warnings.append(
-                    f"{reference_id}: review due on {due.isoformat()}."
+            band = review_window(due, today)
+            if band is not None:
+                level, text = band
+                (errors if level == "error" else warnings).append(
+                    f"{reference_id}: {text}"
                 )
 
         if reviewed is not None and due is not None and due < reviewed:
@@ -168,12 +189,6 @@ def main() -> int:
                 errors.append(
                     f"{reference_id}: cited reference status is {status!r}; "
                     "only current or review-due references may be published."
-                )
-            elif due is not None and due < today:
-                warnings.append(
-                    f"{reference_id}: cited reference review is overdue; "
-                    "publication is allowed but affected content must be "
-                    "marked as requiring clinical validation."
                 )
 
     for warning in warnings:

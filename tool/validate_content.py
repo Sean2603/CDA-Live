@@ -5,6 +5,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -61,9 +62,7 @@ def validate_app_feature_availability(errors: list[str]) -> dict | None:
         if isinstance(state, str) and state not in APP_FEATURE_STATES:
             errors.append(f"{FEATURE_AVAILABILITY_PATH}:features[{index}]: invalid state {state}.")
     missing = sorted(KNOWN_APP_FEATURE_IDS - seen)
-    legacy_feature_set = KNOWN_APP_FEATURE_IDS - {"procedures"}
-    legacy_missing_procedures = missing == ["procedures"] and seen == legacy_feature_set
-    if missing and not legacy_missing_procedures:
+    if missing:
         errors.append(f"{FEATURE_AVAILABILITY_PATH}: missing required feature ids: {', '.join(missing)}.")
     extra = sorted(seen - KNOWN_APP_FEATURE_IDS)
     if extra:
@@ -329,6 +328,113 @@ def _validate_scoring_escalations(value: dict, source_path: Path, errors: list[s
         if unknown:
             errors.append(f"{source_path}:escalations[{index}]: result IDs {', '.join(unknown)} do not resolve to a result on this scoring tool.")
 
+# --- Publication gates (mirror the app's ClinicalContentValidator; they only reject more content) ---
+RFC3339_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?([Zz]|[+-](\d{2}):(\d{2}))\Z", re.ASCII)
+DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}\Z", re.ASCII)
+
+def parse_rfc3339(value) -> datetime | None:
+    """Real RFC 3339 date-time (calendar-checked, offset required) or None. FormatChecker passes date-time silently without extra packages."""
+    match = RFC3339_RE.match(value) if isinstance(value, str) else None
+    if not match:
+        return None
+    year, month, day, hour, minute, second = (int(match.group(i)) for i in range(1, 7))
+    offset = timedelta()
+    if match.group(7) not in ("Z", "z"):
+        off_h, off_m = int(match.group(8)), int(match.group(9))
+        if off_h > 23 or off_m > 59:
+            return None
+        offset = timedelta(hours=off_h, minutes=off_m) * (-1 if match.group(7)[0] == "-" else 1)
+    try:
+        # shortcut: leap second :60 is rejected, revisit if a source ever emits one.
+        return datetime(year, month, day, hour, minute, second) - offset
+    except ValueError:
+        return None
+
+def is_calendar_date(value) -> bool:
+    if not isinstance(value, str) or not DATE_RE.match(value):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+_FORMAT_FIELDS: dict[Path, dict[str, str]] = {}
+
+def schema_format_fields(schema_path: Path) -> dict[str, str]:
+    """Property name -> 'date' / 'date-time' for every such property anywhere in the schema (nested and $defs included)."""
+    if schema_path not in _FORMAT_FIELDS:
+        found: dict[str, str] = {}
+        def walk(node):
+            if isinstance(node, dict):
+                for name, sub in (node.get("properties") or {}).items():
+                    if isinstance(sub, dict) and sub.get("format") in ("date", "date-time"):
+                        found[name] = sub["format"]
+                for child in node.values():
+                    walk(child)
+            elif isinstance(node, list):
+                for child in node:
+                    walk(child)
+        walk(json.loads(schema_path.read_text(encoding="utf-8")))
+        _FORMAT_FIELDS[schema_path] = found
+    return _FORMAT_FIELDS[schema_path]
+
+def validate_date_fields(value, schema_path: Path, label, errors: list[str], path: str = "") -> None:
+    fields = schema_format_fields(schema_path)
+    if isinstance(value, dict):
+        for key, child in value.items():
+            here = f"{path}.{key}" if path else key
+            fmt = fields.get(key)
+            if isinstance(child, str) and fmt:
+                ok = parse_rfc3339(child) is not None if fmt == "date-time" else is_calendar_date(child)
+                if not ok:
+                    errors.append(f"{label}:{here}: {child!r} is not a real {'RFC 3339 date-time' if fmt == 'date-time' else 'calendar date (YYYY-MM-DD)'}.")
+            else:
+                validate_date_fields(child, schema_path, label, errors, here)
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            validate_date_fields(child, schema_path, label, errors, f"{path}[{index}]")
+
+def validate_result_bands(value: dict, source_path, errors: list[str]) -> None:
+    """Mirrors ClinicalContentValidator._validateResultBandCoverage in the app."""
+    sets = [value.get("results", [])] + [m.get("results", []) for m in value.get("alternateModes", []) if isinstance(m, dict)]
+    reject_overlap = not value.get("escalations")
+    for bands in sets:
+        bands = [b for b in bands if isinstance(b, dict)
+                 and isinstance(b.get("minimumScore"), (int, float)) and isinstance(b.get("maximumScore"), (int, float))]
+        decimals = 0
+        for band in bands:
+            for bound in (band["minimumScore"], band["maximumScore"]):
+                text = str(bound)
+                dot = text.find(".")
+                if dot >= 0 and not text.endswith(".0"):
+                    decimals = max(decimals, len(text) - dot - 1)
+        step = 10.0 ** -decimals
+        tolerance = step / 1000
+        covered = None
+        for band in sorted(bands, key=lambda b: b["minimumScore"]):
+            if covered is not None:
+                if reject_overlap and band["minimumScore"] <= covered + tolerance:
+                    errors.append(f"{source_path}: result band {band.get('id')} overlaps the previous band (scores up to {covered} are already covered).")
+                if band["minimumScore"] > covered + step + tolerance:
+                    errors.append(f"{source_path}: result bands leave a gap before {band.get('id')} (scores up to {covered} are covered).")
+            if covered is None or band["maximumScore"] > covered:
+                covered = band["maximumScore"]
+
+def validate_notice_gates(notice: dict, notices_path, documents_by_kind: dict[str, dict], errors: list[str]) -> None:
+    label = f"{notices_path}:notice {notice.get('id')!r}"
+    start, end = parse_rfc3339(notice.get("effectiveFrom")), parse_rfc3339(notice.get("expiresOn"))
+    if start and end and end < start:
+        errors.append(f"{label}: expiresOn is before effectiveFrom.")
+    kind = notice.get("affectedContentType")
+    if kind is not None:
+        target = notice.get("affectedContentId")
+        if not isinstance(target, str) or not target:
+            errors.append(f"{label}: affectedContentId is required when affectedContentType is set.")
+        elif target not in documents_by_kind.get(kind, {}):
+            errors.append(f"{label}: affectedContentId {target!r} does not match a published {kind}.")
+
+
 CARE_SETTING_FOLDERS = {"primary-care", "bhsct", "nhsct", "sehsct", "shsct", "whsct"}
 CARE_SETTING_DEFAULT = "primary-care"
 CONDITION_ID_PATTERN = re.compile(r"^[a-z0-9_-]+$")
@@ -386,6 +492,9 @@ def validate_collection(kind: str, settings: dict, known_reference_ids: set[str]
             location = ".".join(str(part) for part in validation_error.absolute_path)
             suffix = f":{location}" if location else ""
             errors.append(f"{path}{suffix}: {validation_error.message}")
+        validate_date_fields(value,settings["schema"],path,errors)
+        if kind == "procedure" and value.get("status") == "draft":
+            errors.append(f"{path}: draft procedures must not be published.")
         if kind == "assessment":
             category_ids = value.get("categoryIds",["uncategorised"])
             unknown = sorted(set(category_ids)-known_category_ids)
@@ -398,6 +507,7 @@ def validate_collection(kind: str, settings: dict, known_reference_ids: set[str]
         if kind == "scoring-tool":
             _validate_scoring_escalations(value,path,errors)
             _validate_scoring_active_when(value,path,errors)
+            validate_result_bands(value,path,errors)
         missing = sorted(document_reference_ids(kind,value)-known_reference_ids)
         if missing:
             errors.append(f"{path}: unknown reference IDs: {', '.join(missing)}.")
@@ -535,6 +645,7 @@ def main() -> int:
     if len(reference_ids) != len(set(reference_ids)):
         errors.append("Duplicate reference IDs exist.")
     known_reference_ids = {item for item in reference_ids if isinstance(item,str) and item}
+    validate_date_fields(references_document,ROOT/"schema"/"reference-schema.json",ROOT/"references"/"references.json",errors)
 
     documents_by_kind = {}
     for kind,settings in COLLECTIONS.items():
@@ -563,8 +674,10 @@ def main() -> int:
                 location = ".".join(str(part) for part in error.absolute_path)
                 suffix = f":{location}" if location else ""
                 errors.append(f"{notices_path}{suffix}: {error.message}")
+            validate_date_fields(notices_document,notices_schema_path,notices_path,errors)
             for notice in notices_document.get("notices",[]):
                 if isinstance(notice,dict):
+                    validate_notice_gates(notice,notices_path,documents_by_kind,errors)
                     _validate_attachments("clinical-notice",notice,notices_path,known_reference_ids,errors)
                     attachments_by_id = _attachments_by_id(notice)
                     _validate_inline_tokens(notice,notices_path,attachments_by_id,stable_ids,errors)
